@@ -30,6 +30,7 @@
 #include "ld_prog.h"
 #include "os_conf.h"
 #include "rs485.h"
+#include "iwdg.h"
 
 /* USER CODE END Includes */
 
@@ -171,6 +172,7 @@ void ProgTask(void const * argument)
   /* Infinite loop */
 
   static unsigned short work_tmr = 0;
+  MX_IWDG_Init();
   for(;;)
   {
 	  work_tmr = sys_tmr;
@@ -179,6 +181,7 @@ void ProgTask(void const * argument)
 	  else work_time = 0xFFFF-work_tmr+sys_tmr;
 	  inc_timers();
 	  if(plc_cycle) osDelay(plc_cycle);
+	  LL_IWDG_ReloadCounter(IWDG);
   }
   /* USER CODE END ProgTask */
 }
