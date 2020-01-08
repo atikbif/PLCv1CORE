@@ -31,6 +31,8 @@
 #include "os_conf.h"
 #include "rs485.h"
 #include "iwdg.h"
+#include "crc.h"
+#include "din.h"
 
 /* USER CODE END Includes */
 
@@ -55,6 +57,17 @@
 extern unsigned short sys_tmr;
 unsigned short work_time = 1;
 extern unsigned short plc_cycle;
+extern short ain[AI_CNT];
+
+uint16_t ai_type = 0xFFFF;
+
+uint8_t adc_spi_tx[32];
+uint8_t adc_spi_rx[32];
+uint32_t adc_sum[14];
+
+extern short ireg[IREG_CNT];
+
+extern SPI_HandleTypeDef hspi1;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -145,12 +158,56 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   tcp_server_init();
   static uint16_t led_tmr = 0;
+  static uint16_t adc_spi_tmr = 0;
+  static uint16_t crc = 0;
+  static uint16_t i=0;
+  static uint16_t value=0;
+  static uint16_t filter_cnt = 0;
+  init_din();
   for(;;)
   {
 	  led_tmr++;
 	  if(led_tmr>=1000) {led_tmr=0;}
 	  if(led_tmr==0) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_SET);
 	  else if(led_tmr==10) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_RESET);
+
+	  adc_spi_tmr++;
+	  if(adc_spi_tmr==2) {
+		  HAL_GPIO_WritePin(SPI1_CS_GPIO_Port,SPI1_CS_Pin,GPIO_PIN_RESET);
+	  }else if(adc_spi_tmr==4) {
+		  adc_spi_tx[0]=0x31;
+		  adc_spi_tx[1]=0x31;
+		  adc_spi_tx[2]=ai_type>>8;
+		  adc_spi_tx[3]=ai_type&0xFF;
+		  crc = GetCRC16(adc_spi_tx,30);
+		  adc_spi_tx[30] = crc >> 8;
+		  adc_spi_tx[31] = crc & 0xFF;
+		  HAL_SPI_TransmitReceive_DMA(&hspi1, adc_spi_tx, adc_spi_rx, 32);
+	  }else if(adc_spi_tmr==6) {
+		  HAL_GPIO_WritePin(SPI1_CS_GPIO_Port,SPI1_CS_Pin,GPIO_PIN_SET);
+		  crc = GetCRC16(adc_spi_rx,32);
+		  if(crc==0) {
+
+			  for(i=0;i<14;i++) {
+
+				  value = (uint16_t)adc_spi_rx[2+i*2]<<8;
+				  value|=adc_spi_rx[3+i*2];
+				  adc_sum[i]+=value;
+			  }
+			  filter_cnt++;
+			  if(filter_cnt==10) {
+				  for(i=0;i<14;i++) {
+					  value = adc_sum[i]/10;
+					  adc_sum[i] = 0;
+					  //ireg[4+i] = value;
+					  ain[i]=value;
+				  }
+				  filter_cnt = 0;
+			  }
+		  }
+	  }else if(adc_spi_tmr==10) {adc_spi_tmr=0;}
+
+	  update_din();
 
 	  uart1_scan();
 	  uart2_scan();

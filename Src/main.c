@@ -24,6 +24,7 @@
 #include "dma.h"
 #include "iwdg.h"
 #include "lwip.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -126,6 +127,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_DMA_Init();
   //MX_IWDG_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_6);

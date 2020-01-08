@@ -2,11 +2,11 @@
 
 #define OS_CONF_H_
 
-	#define DI_CNT	4
+	#define DI_CNT	14
 
 	#define DO_CNT	4
 
-	#define AI_CNT	4
+	#define AI_CNT	14
 
 	#define FRL_CNT	16
 
