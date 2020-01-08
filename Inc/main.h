@@ -73,10 +73,22 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SPI1_CS_Pin GPIO_PIN_15
 #define SPI1_CS_GPIO_Port GPIOF
+#define RELE4_Pin GPIO_PIN_9
+#define RELE4_GPIO_Port GPIOE
+#define RELE3_Pin GPIO_PIN_11
+#define RELE3_GPIO_Port GPIOE
+#define RELE5_Pin GPIO_PIN_13
+#define RELE5_GPIO_Port GPIOE
+#define RELE6_Pin GPIO_PIN_14
+#define RELE6_GPIO_Port GPIOE
 #define RS485_DIR1_Pin GPIO_PIN_10
 #define RS485_DIR1_GPIO_Port GPIOD
 #define RS485_DIR2_Pin GPIO_PIN_2
 #define RS485_DIR2_GPIO_Port GPIOG
+#define RELE1_Pin GPIO_PIN_6
+#define RELE1_GPIO_Port GPIOC
+#define RELE2_Pin GPIO_PIN_7
+#define RELE2_GPIO_Port GPIOC
 #define LED_R_Pin GPIO_PIN_6
 #define LED_R_GPIO_Port GPIOI
 #define LED_G_Pin GPIO_PIN_7

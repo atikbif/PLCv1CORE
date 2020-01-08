@@ -23,7 +23,8 @@ uint8_t net_address = 0x01;
 
 #define HOLDR_COUNT 16
 #define INPR_COUNT	IREG_CNT + AI_CNT + 5
-#define DINPUTS_COUNT	(14 + 14 + 14 + 14) // дискр входы , кор. замыкание , обрыв , ошибки входов
+#define DINPUTS_COUNT	(DI_CNT + DI_CNT + DI_CNT + DI_CNT) // дискр входы , кор. замыкание , обрыв , ошибки входов
+#define COIL_COUNT	(DO_CNT + IBIT_CNT + DI_CNT + AI_CNT)
 
 #define READ_COILS		1
 #define READ_DINPUTS	2
@@ -46,6 +47,11 @@ extern uint8_t din[DI_CNT];
 extern uint8_t din_break[DI_CNT];
 extern uint8_t din_short_circuit[DI_CNT];
 extern uint8_t din_fault[DI_CNT];
+
+extern uint16_t do_reg;
+extern unsigned char dout[DO_CNT];
+
+extern unsigned char ibit[IBIT_CNT];
 
 static void modbus_error(unsigned char func, unsigned char code, uint8_t * tx_ptr, void (*send)(uint8_t*,uint16_t)) {
 	unsigned short crc=0;
@@ -114,6 +120,28 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				EE_WriteVariable(VirtAddVarTab[1],0);
 				HAL_Delay(50);
 				NVIC_SystemReset();
+				break;
+			case READ_COILS:
+				mem_addr = ((unsigned short)rx_ptr[2]<<8) | rx_ptr[3];
+				cnt = ((unsigned short)rx_ptr[4]<<8) | rx_ptr[5];
+				if(cnt>COIL_COUNT || cnt==0) {modbus_error(READ_COILS,0x03,tx_ptr,send);break;}
+				if(mem_addr+cnt>COIL_COUNT) {modbus_error(READ_COILS,0x02,tx_ptr,send);break;}
+				byte_count = cnt>>3;
+				if(cnt!=(byte_count<<3)) byte_count++;
+				for(tmp=0;tmp<byte_count;tmp++) tx_ptr[3+tmp] = 0;
+				for(tmp=0;tmp<cnt;tmp++) {
+					if(mem_addr+tmp<DO_CNT) {if(dout[mem_addr+tmp]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
+					else if(mem_addr+tmp<DO_CNT + IBIT_CNT) {if(ibit[mem_addr+tmp-DO_CNT]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
+					else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT) {if(din[mem_addr+tmp-DO_CNT-IBIT_CNT]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
+					else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {if(ai_type & ((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT)) ) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
+				}
+				tx_ptr[0] = net_address;
+				tx_ptr[1] = READ_COILS;
+				tx_ptr[2] = byte_count;
+				crc = GetCRC16((unsigned char*)tx_ptr,3+byte_count);
+				tx_ptr[3+byte_count]=crc>>8;
+				tx_ptr[4+byte_count]=crc&0xFF;
+				send(tx_ptr,5+byte_count);
 				break;
 			case READ_DINPUTS:
 				mem_addr = ((unsigned short)rx_ptr[2]<<8) | rx_ptr[3];
@@ -228,6 +256,57 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				}
 				tx_ptr[0]=net_address;
 				tx_ptr[1]=WR_MULTI_REGS;
+				tx_ptr[2]=mem_addr>>8;
+				tx_ptr[3]=mem_addr&0xFF;
+				tx_ptr[4]=cnt>>8;
+				tx_ptr[5]=cnt&0xFF;
+				crc=GetCRC16(tx_ptr,6);
+				tx_ptr[6]=crc>>8;
+				tx_ptr[7]=crc&0xFF;
+				send(tx_ptr,8);
+				break;
+			case WR_SINGLE_COIL:
+				mem_addr = ((unsigned short)rx_ptr[2]<<8) | rx_ptr[3];
+				cnt = ((unsigned short)rx_ptr[4]<<8) | rx_ptr[5];
+				if(cnt&&(cnt!=0xFF00)) {modbus_error(WR_SINGLE_COIL,0x03,tx_ptr,send);break;}
+				if(mem_addr>=COIL_COUNT) {modbus_error(WR_SINGLE_COIL,0x02,tx_ptr,send);break;}
+				if(mem_addr<DO_CNT) {if(cnt) dout[mem_addr]=1;else dout[mem_addr]=0;}
+				else if(mem_addr<DO_CNT + IBIT_CNT) {if(cnt) ibit[mem_addr-DO_CNT]=1; else ibit[mem_addr-DO_CNT]=0;}
+				else if(mem_addr<DO_CNT + IBIT_CNT + DI_CNT) {if(cnt) din[mem_addr-DO_CNT-IBIT_CNT]=1; else din[mem_addr-DO_CNT-IBIT_CNT]=0;}
+				else if(mem_addr<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {
+					if(cnt) ai_type |= ((uint16_t)1<<(mem_addr-DO_CNT-IBIT_CNT-DI_CNT));
+					else ai_type &= ~((uint16_t)1<<(mem_addr-DO_CNT-IBIT_CNT-DI_CNT));
+				}
+				tx_ptr[0]=net_address;
+				tx_ptr[1]=WR_SINGLE_COIL;
+				tx_ptr[2]=mem_addr>>8;
+				tx_ptr[3]=mem_addr&0xFF;
+				tx_ptr[4]=cnt>>8;
+				tx_ptr[5]=cnt&0xFF;
+				crc=GetCRC16(tx_ptr,6);
+				tx_ptr[6]=crc>>8;
+				tx_ptr[7]=crc&0xFF;
+				send(tx_ptr,8);
+				break;
+			case WR_MULTI_COIL:
+				mem_addr = ((unsigned short)rx_ptr[2]<<8) | rx_ptr[3];
+				cnt = ((unsigned short)rx_ptr[4]<<8) | rx_ptr[5];
+				if(cnt>COIL_COUNT || cnt==0) {modbus_error(WR_MULTI_COIL,0x03,tx_ptr,send);break;}
+				if(mem_addr+cnt>COIL_COUNT) {modbus_error(WR_MULTI_COIL,0x02,tx_ptr,send);break;}
+				for(tmp=0;tmp<cnt;tmp++) {
+					if(mem_addr+tmp<DO_CNT) {
+						if((rx_ptr[7+(tmp>>3)])&(1<<(tmp%8))) dout[mem_addr+tmp]=1;else dout[mem_addr+tmp]=0;
+					}else if(mem_addr+tmp<DO_CNT + IBIT_CNT) {
+						if((rx_ptr[7+(tmp>>3)])&(1<<(tmp%8))) ibit[mem_addr+tmp-DO_CNT]=1; else ibit[mem_addr+tmp-DO_CNT]=0;
+					}else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT) {
+						if((rx_ptr[7+(tmp>>3)])&(1<<(tmp%8))) din[mem_addr+tmp-DO_CNT-IBIT_CNT]=1; else din[mem_addr+tmp-DO_CNT-IBIT_CNT]=0;
+					}else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {
+						if((rx_ptr[7+(tmp>>3)])&(1<<(tmp%8))) ai_type |= ((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT));
+						else ai_type &= ~((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT));
+					}
+				}
+				tx_ptr[0]=net_address;
+				tx_ptr[1]=WR_MULTI_COIL;
 				tx_ptr[2]=mem_addr>>8;
 				tx_ptr[3]=mem_addr&0xFF;
 				tx_ptr[4]=cnt>>8;

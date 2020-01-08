@@ -1140,7 +1140,7 @@ tcp_slowtmr_start:
     }
 
     /* Check if this PCB has stayed too long in LAST-ACK */
-    if (pcb->state == LAST_ACK || pcb->state == FIN_WAIT_1 || pcb->state == CLOSING) {
+    if (pcb->state == LAST_ACK) {
       if ((u32_t)(tcp_ticks - pcb->tmr) > 2 * TCP_MSL / TCP_SLOW_INTERVAL) {
         ++pcb_remove;
         LWIP_DEBUGF(TCP_DEBUG, ("tcp_slowtmr: removing pcb stuck in LAST-ACK\n"));

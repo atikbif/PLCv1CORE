@@ -33,6 +33,7 @@
 #include "iwdg.h"
 #include "crc.h"
 #include "din.h"
+#include "dout.h"
 
 /* USER CODE END Includes */
 
@@ -237,6 +238,7 @@ void ProgTask(void const * argument)
 	  if(sys_tmr>=work_tmr) work_time = sys_tmr-work_tmr+1;
 	  else work_time = 0xFFFF-work_tmr+sys_tmr;
 	  inc_timers();
+	  update_dout();
 	  if(plc_cycle) osDelay(plc_cycle);
 	  LL_IWDG_ReloadCounter(IWDG);
   }

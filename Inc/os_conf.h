@@ -4,7 +4,7 @@
 
 	#define DI_CNT	14
 
-	#define DO_CNT	4
+	#define DO_CNT	6
 
 	#define AI_CNT	14
 
