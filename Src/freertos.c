@@ -34,6 +34,7 @@
 #include "crc.h"
 #include "din.h"
 #include "dout.h"
+#include "ain.h"
 
 /* USER CODE END Includes */
 
@@ -189,7 +190,7 @@ void StartDefaultTask(void const * argument)
 		  crc = GetCRC16(adc_spi_rx,32);
 		  if(crc==0) {
 
-			  for(i=0;i<14;i++) {
+			  for(i=0;i<AI_CNT;i++) {
 
 				  value = (uint16_t)adc_spi_rx[2+i*2]<<8;
 				  value|=adc_spi_rx[3+i*2];
@@ -197,13 +198,14 @@ void StartDefaultTask(void const * argument)
 			  }
 			  filter_cnt++;
 			  if(filter_cnt==10) {
-				  for(i=0;i<14;i++) {
+				  for(i=0;i<AI_CNT;i++) {
 					  value = adc_sum[i]/10;
 					  adc_sum[i] = 0;
 					  //ireg[4+i] = value;
 					  ain[i]=value;
 				  }
 				  filter_cnt = 0;
+				  update_ethip_ain();
 			  }
 		  }
 	  }else if(adc_spi_tmr==10) {adc_spi_tmr=0;}
