@@ -45,6 +45,7 @@
 /* USER CODE BEGIN PD */
 
 #define	EEPROM_KEY_VALUE	0x3235
+#define	CONFIG_KEY_VALUE	0x1215
 
 /* USER CODE END PD */
 
@@ -71,6 +72,11 @@ unsigned short sys_tmr=0;
 
 uint16_t VirtAddVarTab[NB_OF_VAR]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 static uint16_t ee_key = 0;
+
+extern uint8_t net_address;
+uint8_t ip_addr[4] = {192,168,1,2};
+uint8_t ip_mask[4] = {255,255,255,0};
+uint8_t ip_gate[4] = {192,168,1,1};
 
 /* USER CODE END PV */
 
@@ -118,6 +124,38 @@ int main(void)
 	  EE_ReadVariable(VirtAddVarTab[1],  &ee_key);
 	  if(ee_key!=2) EE_WriteVariable(VirtAddVarTab[1],2);
   }
+  EE_ReadVariable(VirtAddVarTab[15],  &ee_key);
+  if(ee_key!=CONFIG_KEY_VALUE) {
+	  EE_WriteVariable(VirtAddVarTab[0],EEPROM_KEY_VALUE);
+	  EE_WriteVariable(VirtAddVarTab[2],1);			// net address
+	  EE_WriteVariable(VirtAddVarTab[3],0xC0A8);	// IP address
+	  EE_WriteVariable(VirtAddVarTab[4],0x0102);
+	  EE_WriteVariable(VirtAddVarTab[5],0xFFFF);	// IP mask
+	  EE_WriteVariable(VirtAddVarTab[6],0xFF00);
+	  EE_WriteVariable(VirtAddVarTab[7],0xC0A8);	// IP gate
+	  EE_WriteVariable(VirtAddVarTab[8],0x0101);
+  }
+
+  EE_ReadVariable(VirtAddVarTab[2],  &ee_key);
+  net_address = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[3],  &ee_key);
+  ip_addr[0] = ee_key>>8;
+  ip_addr[1] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[4],  &ee_key);
+  ip_addr[2] = ee_key>>8;
+  ip_addr[3] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[5],  &ee_key);
+  ip_mask[0] = ee_key>>8;
+  ip_mask[1] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[6],  &ee_key);
+  ip_mask[2] = ee_key>>8;
+  ip_mask[3] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[7],  &ee_key);
+  ip_gate[0] = ee_key>>8;
+  ip_gate[1] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[8],  &ee_key);
+  ip_gate[2] = ee_key>>8;
+  ip_gate[3] = ee_key&0xFF;
 
   /* USER CODE END SysInit */
 

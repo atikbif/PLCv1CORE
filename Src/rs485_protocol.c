@@ -53,6 +53,10 @@ extern unsigned char dout[DO_CNT];
 
 extern unsigned char ibit[IBIT_CNT];
 
+extern uint8_t ip_addr[4];
+extern uint8_t ip_mask[4];
+extern uint8_t ip_gate[4];
+
 static void modbus_error(unsigned char func, unsigned char code, uint8_t * tx_ptr, void (*send)(uint8_t*,uint16_t)) {
 	unsigned short crc=0;
 	tx_ptr[0] = net_address;
@@ -210,12 +214,43 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				if(mem_addr+cnt>HOLDR_COUNT) {modbus_error(READ_HOLD_REGS,0x02,tx_ptr,send);break;}
 
 				for(tmp=0;tmp<cnt;tmp++) {
-					if(mem_addr+tmp==0) {
+					switch(mem_addr+tmp) {
+					case 0:
 						tx_ptr[3+tmp*2] = ai_type>>8;
 						tx_ptr[4+tmp*2] = ai_type&0xFF;
-					}else {
+						break;
+					case 1:
+						tx_ptr[3+tmp*2] = 0;
+						tx_ptr[4+tmp*2] = net_address;
+						break;
+					case 2:
+						tx_ptr[3+tmp*2] = ip_addr[0];
+						tx_ptr[4+tmp*2] = ip_addr[1];
+						break;
+					case 3:
+						tx_ptr[3+tmp*2] = ip_addr[2];
+						tx_ptr[4+tmp*2] = ip_addr[3];
+						break;
+					case 4:
+						tx_ptr[3+tmp*2] = ip_mask[0];
+						tx_ptr[4+tmp*2] = ip_mask[1];
+						break;
+					case 5:
+						tx_ptr[3+tmp*2] = ip_mask[2];
+						tx_ptr[4+tmp*2] = ip_mask[3];
+						break;
+					case 6:
+						tx_ptr[3+tmp*2] = ip_gate[0];
+						tx_ptr[4+tmp*2] = ip_gate[1];
+						break;
+					case 7:
+						tx_ptr[3+tmp*2] = ip_gate[2];
+						tx_ptr[4+tmp*2] = ip_gate[3];
+						break;
+					default:
 						tx_ptr[3+tmp*2] = 0;
 						tx_ptr[4+tmp*2] = 0;
+						break;
 					}
 				}
 				tx_ptr[0]=net_address;
@@ -230,9 +265,46 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				mem_addr = ((unsigned short)rx_ptr[2]<<8) | rx_ptr[3];
 				cnt = ((unsigned short)rx_ptr[4]<<8) | rx_ptr[5];
 				if(mem_addr >= HOLDR_COUNT) {modbus_error(WR_SINGLE_REG,0x02,tx_ptr,send);break;}
-				if(mem_addr==0x00) {
-					ai_type = cnt;
+				switch(mem_addr) {
+					case 0:
+						ai_type = cnt;
+						break;
+					case 1:
+						net_address = cnt;
+						EE_WriteVariable(VirtAddVarTab[2],cnt);
+						break;
+					case 2:
+						ip_addr[0] = cnt>>8;
+						ip_addr[1] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[3],cnt);
+						break;
+					case 3:
+						ip_addr[2] = cnt>>8;
+						ip_addr[3] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[4],cnt);
+						break;
+					case 4:
+						ip_mask[0] = cnt>>8;
+						ip_mask[1] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[5],cnt);
+						break;
+					case 5:
+						ip_mask[2] = cnt>>8;
+						ip_mask[3] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[6],cnt);
+						break;
+					case 6:
+						ip_gate[0] = cnt>>8;
+						ip_gate[1] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[7],cnt);
+						break;
+					case 7:
+						ip_gate[2] = cnt>>8;
+						ip_gate[3] = cnt & 0xFF;
+						EE_WriteVariable(VirtAddVarTab[8],cnt);
+						break;
 				}
+
 				tx_ptr[0]=net_address;
 				tx_ptr[1]=WR_SINGLE_REG;
 				tx_ptr[2]=mem_addr>>8;
@@ -250,6 +322,45 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				if(cnt>=128 || cnt==0) {modbus_error(WR_MULTI_REGS,0x03,tx_ptr,send);break;}
 				if(mem_addr+cnt>HOLDR_COUNT) {modbus_error(WR_MULTI_REGS,0x02,tx_ptr,send);break;}
 				for(tmp=0;tmp<cnt;tmp++) {
+					switch(mem_addr+tmp) {
+						case 0:
+							ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
+							break;
+						case 1:
+							net_address = rx_ptr[8+tmp*2] ;
+							EE_WriteVariable(VirtAddVarTab[2],cnt);
+							break;
+						case 2:
+							ip_addr[0] = rx_ptr[7+tmp*2];
+							ip_addr[1] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[3],cnt);
+							break;
+						case 3:
+							ip_addr[2] = rx_ptr[7+tmp*2];
+							ip_addr[3] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[4],cnt);
+							break;
+						case 4:
+							ip_mask[0] = rx_ptr[7+tmp*2];
+							ip_mask[1] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[5],cnt);
+							break;
+						case 5:
+							ip_mask[2] = rx_ptr[7+tmp*2];
+							ip_mask[3] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[6],cnt);
+							break;
+						case 6:
+							ip_gate[0] = rx_ptr[7+tmp*2];
+							ip_gate[1] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[7],cnt);
+							break;
+						case 7:
+							ip_gate[2] = rx_ptr[7+tmp*2];
+							ip_gate[3] = rx_ptr[8+tmp*2];
+							EE_WriteVariable(VirtAddVarTab[8],cnt);
+							break;
+					}
 					if(mem_addr+tmp==0x00) {
 						ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
 					}
