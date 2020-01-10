@@ -78,6 +78,8 @@ uint8_t ip_addr[4] = {192,168,1,2};
 uint8_t ip_mask[4] = {255,255,255,0};
 uint8_t ip_gate[4] = {192,168,1,1};
 
+extern uint16_t ai_type;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,6 +136,8 @@ int main(void)
 	  EE_WriteVariable(VirtAddVarTab[6],0xFF00);
 	  EE_WriteVariable(VirtAddVarTab[7],0xC0A8);	// IP gate
 	  EE_WriteVariable(VirtAddVarTab[8],0x0101);
+	  EE_WriteVariable(VirtAddVarTab[9],0xFFFF);	// ai_type
+	  EE_WriteVariable(VirtAddVarTab[15],CONFIG_KEY_VALUE);
   }
 
   EE_ReadVariable(VirtAddVarTab[2],  &ee_key);
@@ -156,6 +160,7 @@ int main(void)
   EE_ReadVariable(VirtAddVarTab[8],  &ee_key);
   ip_gate[2] = ee_key>>8;
   ip_gate[3] = ee_key&0xFF;
+  EE_ReadVariable(VirtAddVarTab[9],  &ai_type);
 
   /* USER CODE END SysInit */
 

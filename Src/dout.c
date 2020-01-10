@@ -26,6 +26,7 @@ static void update_ethip_dout() {
 		copy_value = answer_93[byte_num];
 		if(dout[tmp]==0)  {copy_value |= 1<<bit_num;copy_value &= ~((uint8_t)1<<(bit_num+1));}
 		else {copy_value &= ~((uint8_t)1<<bit_num);copy_value &= ~((uint8_t)1<<(bit_num+1));}
+		//copy_value &= ~((uint8_t)1<<bit_num);copy_value &= ~((uint8_t)1<<(bit_num+1));
 		answer_93[byte_num] = copy_value;
 	}
 }

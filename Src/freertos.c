@@ -199,7 +199,8 @@ void StartDefaultTask(void const * argument)
 			  filter_cnt++;
 			  if(filter_cnt==10) {
 				  for(i=0;i<AI_CNT;i++) {
-					  value = adc_sum[i]/10;
+					  if(ai_type & ((uint16_t)1<<i)) {value = adc_sum[i]*5/62;}	// mA
+					  else { value = adc_sum[i]/10; }	// mV
 					  adc_sum[i] = 0;
 					  //ireg[4+i] = value;
 					  ain[i]=value;

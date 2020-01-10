@@ -139,7 +139,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT) {if(din[mem_addr+tmp-DO_CNT-IBIT_CNT]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
 					else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {if(ai_type & ((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT)) ) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
 				}
-				tx_ptr[0] = net_address;
+				tx_ptr[0] = rx_ptr[0];
 				tx_ptr[1] = READ_COILS;
 				tx_ptr[2] = byte_count;
 				crc = GetCRC16((unsigned char*)tx_ptr,3+byte_count);
@@ -161,7 +161,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					else if(mem_addr+tmp<DI_CNT + DI_CNT + DI_CNT) {if(din_break[mem_addr+tmp-DI_CNT-DI_CNT]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
 					else if(mem_addr+tmp<DI_CNT + DI_CNT + DI_CNT + DI_CNT) {if(din_fault[mem_addr+tmp-DI_CNT-DI_CNT-DI_CNT]) tx_ptr[3+(tmp>>3)] |= 1<<(tmp%8);}
 				}
-				tx_ptr[0] = net_address;
+				tx_ptr[0] = rx_ptr[0];
 				tx_ptr[1] = READ_DINPUTS;
 				tx_ptr[2] = byte_count;
 				crc = GetCRC16((unsigned char*)tx_ptr,3+byte_count);
@@ -199,7 +199,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						tx_ptr[4+tmp*2] = di_fault_reg&0xFF;
 					}
 				}
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=READ_INP_REGS;
 				tx_ptr[2]=cnt*2;
 				crc=GetCRC16(tx_ptr,3+cnt*2);
@@ -253,7 +253,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						break;
 					}
 				}
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=READ_HOLD_REGS;
 				tx_ptr[2]=cnt*2;
 				crc=GetCRC16(tx_ptr,3+cnt*2);
@@ -268,6 +268,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				switch(mem_addr) {
 					case 0:
 						ai_type = cnt;
+						EE_WriteVariable(VirtAddVarTab[9],ai_type);
 						break;
 					case 1:
 						net_address = cnt;
@@ -305,7 +306,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						break;
 				}
 
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=WR_SINGLE_REG;
 				tx_ptr[2]=mem_addr>>8;
 				tx_ptr[3]=mem_addr&0xFF;
@@ -325,6 +326,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					switch(mem_addr+tmp) {
 						case 0:
 							ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
+							EE_WriteVariable(VirtAddVarTab[9],ai_type);
 							break;
 						case 1:
 							net_address = rx_ptr[8+tmp*2] ;
@@ -365,7 +367,7 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
 					}
 				}
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=WR_MULTI_REGS;
 				tx_ptr[2]=mem_addr>>8;
 				tx_ptr[3]=mem_addr&0xFF;
@@ -387,8 +389,9 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				else if(mem_addr<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {
 					if(cnt) ai_type |= ((uint16_t)1<<(mem_addr-DO_CNT-IBIT_CNT-DI_CNT));
 					else ai_type &= ~((uint16_t)1<<(mem_addr-DO_CNT-IBIT_CNT-DI_CNT));
+					EE_WriteVariable(VirtAddVarTab[9],ai_type);
 				}
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=WR_SINGLE_COIL;
 				tx_ptr[2]=mem_addr>>8;
 				tx_ptr[3]=mem_addr&0xFF;
@@ -414,9 +417,10 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					}else if(mem_addr+tmp<DO_CNT + IBIT_CNT + DI_CNT + AI_CNT) {
 						if((rx_ptr[7+(tmp>>3)])&(1<<(tmp%8))) ai_type |= ((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT));
 						else ai_type &= ~((uint16_t)1<<(mem_addr+tmp-DO_CNT-IBIT_CNT-DI_CNT));
+						EE_WriteVariable(VirtAddVarTab[9],ai_type);
 					}
 				}
-				tx_ptr[0]=net_address;
+				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=WR_MULTI_COIL;
 				tx_ptr[2]=mem_addr>>8;
 				tx_ptr[3]=mem_addr&0xFF;
