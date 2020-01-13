@@ -24,6 +24,7 @@
 #include "dma.h"
 #include "iwdg.h"
 #include "lwip.h"
+#include "rtc.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
@@ -170,6 +171,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_DMA_Init();
   MX_IWDG_Init();
+  MX_RTC_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
@@ -182,6 +184,34 @@ int main(void)
 
   LL_USART_Enable(USART1);
   LL_USART_Enable(USART2);
+
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef sDate = {0};
+
+  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+  HAL_PWR_EnableBkUpAccess();
+  __BKPSRAM_CLK_ENABLE();
+  HAL_PWR_EnableBkUpReg();
+
+  volatile uint16_t errorindex = 0;
+
+  volatile uint32_t sram_buf[512]={0};
+
+  // Write to Backup SRAM with 32-Bit Data
+	/*for (uint16_t i = 0; i < 256; i += 4) {
+		*(__IO uint32_t *) (BKPSRAM_BASE + i) = i;
+	}*/
+
+	// Check the written Data
+	for (uint16_t i = 0; i < 256; i += 4) {
+		sram_buf[i] = *(__IO uint32_t *) (BKPSRAM_BASE + i);
+		if (sram_buf[i] != i){
+			errorindex++;
+		}
+	}
+
 
   /* USER CODE END 2 */
 
@@ -212,6 +242,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage 
   */
@@ -249,6 +280,12 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
