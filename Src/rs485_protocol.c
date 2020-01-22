@@ -363,9 +363,6 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 							EE_WriteVariable(VirtAddVarTab[8],cnt);
 							break;
 					}
-					if(mem_addr+tmp==0x00) {
-						ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
-					}
 				}
 				tx_ptr[0]=rx_ptr[0];
 				tx_ptr[1]=WR_MULTI_REGS;

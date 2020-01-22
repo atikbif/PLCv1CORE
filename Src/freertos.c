@@ -35,6 +35,7 @@
 #include "din.h"
 #include "dout.h"
 #include "ain.h"
+#include "udp_server.h"
 
 /* USER CODE END Includes */
 
@@ -132,11 +133,11 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of progTask */
-  osThreadDef(progTask, ProgTask, osPriorityBelowNormal, 0, 128);
+  osThreadDef(progTask, ProgTask, osPriorityBelowNormal, 0, 512);
   progTaskHandle = osThreadCreate(osThread(progTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -159,6 +160,7 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   tcp_server_init();
+  udp_server_init();
   static uint16_t led_tmr = 0;
   static uint16_t adc_spi_tmr = 0;
   static uint16_t crc = 0;
