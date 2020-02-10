@@ -76,7 +76,7 @@ static void ethipserver_thread(void *arg)
     nums|=(1<<(num-1));
 
     close_flag = 0;
-	netconn_set_recvtimeout(newconn,3000);
+	netconn_set_recvtimeout(newconn,30000);
 	while (netconn_recv(newconn, &buf) == ERR_OK)
 	{
 			do
