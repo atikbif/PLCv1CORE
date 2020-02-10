@@ -80,6 +80,7 @@ osThreadId progTaskHandle;
 /* USER CODE BEGIN FunctionPrototypes */
 
 extern void tcp_server_init(void);
+void update_ethip_intern_regs();
    
 /* USER CODE END FunctionPrototypes */
 
@@ -201,7 +202,7 @@ void StartDefaultTask(void const * argument)
 			  filter_cnt++;
 			  if(filter_cnt==10) {
 				  for(i=0;i<AI_CNT;i++) {
-					  if(ai_type & ((uint16_t)1<<i)) {value = adc_sum[i]*5/62;}	// mA
+					  if(ai_type & ((uint16_t)1<<i)) {value = adc_sum[i]*50/62;}	// mA
 					  else { value = adc_sum[i]/10; }	// mV
 					  adc_sum[i] = 0;
 					  //ireg[4+i] = value;
@@ -211,7 +212,11 @@ void StartDefaultTask(void const * argument)
 				  update_ethip_ain();
 			  }
 		  }
-	  }else if(adc_spi_tmr==10) {adc_spi_tmr=0;}
+	  }else if(adc_spi_tmr==10) {
+		  adc_spi_tmr=0;
+		  update_ethip_intern_regs();
+	  }
+
 
 	  update_din();
 

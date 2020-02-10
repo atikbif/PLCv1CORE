@@ -12,6 +12,7 @@
 #include "crc.h"
 #include "eeprom.h"
 #include "os_conf.h"
+#include "modbus.h"
 
 static uint8_t tmp_rx1_buf[UART_BUF_SISE];
 static uint8_t tmp_rx2_buf[UART_BUF_SISE];
@@ -20,20 +21,6 @@ static uint8_t tx2_buf[UART_BUF_SISE];
 extern uint16_t VirtAddVarTab[NB_OF_VAR];
 
 uint8_t net_address = 0x01;
-
-#define HOLDR_COUNT 16
-#define INPR_COUNT	IREG_CNT + AI_CNT + 5
-#define DINPUTS_COUNT	(DI_CNT + DI_CNT + DI_CNT + DI_CNT) // дискр входы , кор. замыкание , обрыв , ошибки входов
-#define COIL_COUNT	(DO_CNT + IBIT_CNT + DI_CNT + AI_CNT)
-
-#define READ_COILS		1
-#define READ_DINPUTS	2
-#define READ_HOLD_REGS	3
-#define READ_INP_REGS	4
-#define WR_SINGLE_COIL	5
-#define WR_SINGLE_REG	6
-#define WR_MULTI_REGS	0x10
-#define WR_MULTI_COIL	0x0F
 
 extern short ain[AI_CNT];
 extern short ireg[IREG_CNT];
@@ -71,6 +58,7 @@ static void modbus_error(unsigned char func, unsigned char code, uint8_t * tx_pt
 void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)(uint8_t*,uint16_t)) {
 	uint16_t crc=0;
 	uint16_t cnt=0;
+	uint16_t value = 0;
 	uint16_t mem_addr = 0;
 	uint16_t tmp=0;
 	uint16_t byte_count = 0;
@@ -323,44 +311,45 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 				if(cnt>=128 || cnt==0) {modbus_error(WR_MULTI_REGS,0x03,tx_ptr,send);break;}
 				if(mem_addr+cnt>HOLDR_COUNT) {modbus_error(WR_MULTI_REGS,0x02,tx_ptr,send);break;}
 				for(tmp=0;tmp<cnt;tmp++) {
+					value = ((unsigned short)rx_ptr[7+tmp*2]<<8) | rx_ptr[8+tmp*2];
 					switch(mem_addr+tmp) {
 						case 0:
-							ai_type = rx_ptr[8+tmp*2] | ((unsigned short)rx_ptr[7+tmp*2]<<8);
+							ai_type = value;
 							EE_WriteVariable(VirtAddVarTab[9],ai_type);
 							break;
 						case 1:
 							net_address = rx_ptr[8+tmp*2] ;
-							EE_WriteVariable(VirtAddVarTab[2],cnt);
+							EE_WriteVariable(VirtAddVarTab[2],value);
 							break;
 						case 2:
 							ip_addr[0] = rx_ptr[7+tmp*2];
 							ip_addr[1] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[3],cnt);
+							EE_WriteVariable(VirtAddVarTab[3],value);
 							break;
 						case 3:
 							ip_addr[2] = rx_ptr[7+tmp*2];
 							ip_addr[3] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[4],cnt);
+							EE_WriteVariable(VirtAddVarTab[4],value);
 							break;
 						case 4:
 							ip_mask[0] = rx_ptr[7+tmp*2];
 							ip_mask[1] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[5],cnt);
+							EE_WriteVariable(VirtAddVarTab[5],value);
 							break;
 						case 5:
 							ip_mask[2] = rx_ptr[7+tmp*2];
 							ip_mask[3] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[6],cnt);
+							EE_WriteVariable(VirtAddVarTab[6],value);
 							break;
 						case 6:
 							ip_gate[0] = rx_ptr[7+tmp*2];
 							ip_gate[1] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[7],cnt);
+							EE_WriteVariable(VirtAddVarTab[7],value);
 							break;
 						case 7:
 							ip_gate[2] = rx_ptr[7+tmp*2];
 							ip_gate[3] = rx_ptr[8+tmp*2];
-							EE_WriteVariable(VirtAddVarTab[8],cnt);
+							EE_WriteVariable(VirtAddVarTab[8],value);
 							break;
 					}
 				}

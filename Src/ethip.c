@@ -160,7 +160,7 @@ uint8_t answer_9a[34] = {
 };
 
 uint8_t answer_9b[2] = {
-	0x80, 0x00
+	0xFF, 0xFF
 };
 
 uint8_t answer_time[4] = {0,0,0,0};

@@ -15,9 +15,9 @@ uint8_t din_short_circuit[DI_CNT]={0};
 uint8_t din_fault[DI_CNT]={0};
 
 extern short ain[AI_CNT];
-short break_level=40;
-short input_on_level=128;
-short short_circuit_level=255;
+short break_level=300;//40;
+short input_on_level=950;//128;
+short short_circuit_level=2000;//255;
 
 uint16_t di_state_reg = 0x0000;
 uint16_t di_sh_circ_reg = 0x0000;
