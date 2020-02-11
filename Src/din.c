@@ -14,7 +14,8 @@ uint8_t din_break[DI_CNT]={0};
 uint8_t din_short_circuit[DI_CNT]={0};
 uint8_t din_fault[DI_CNT]={0};
 
-extern short ain[AI_CNT];
+extern short ain_raw[AI_CNT];
+extern uint16_t ai_type;
 short break_level=300;//40;
 short input_on_level=950;//128;
 short short_circuit_level=2000;//255;
@@ -66,14 +67,16 @@ void update_din() {
 	uint16_t tmp_di_break_reg = 0x0000;
 	uint16_t tmp_di_fault_reg = 0x0000;
 	for(tmp=0;tmp<DI_CNT;tmp++) {
-		if(ain[tmp]>=input_on_level) din[tmp]=1;else din[tmp]=0;
-		if(ain[tmp]<=break_level) din_break[tmp]=1;else din_break[tmp]=0;
-		if(ain[tmp]>=short_circuit_level) din_short_circuit[tmp]=1;else din_short_circuit[tmp]=0;
-		if(din_break[tmp] || din_short_circuit[tmp]) din_fault[tmp] = 1;else din_fault[tmp]=0;
-		if(din[tmp]) tmp_di_state_reg |= (uint16_t)1<<tmp;
-		if(din_short_circuit[tmp]) tmp_di_sh_circ_reg |= (uint16_t)1<<tmp;
-		if(din_break[tmp]) tmp_di_break_reg |= (uint16_t)1<<tmp;
-		if(din_fault[tmp]) tmp_di_fault_reg |= (uint16_t)1<<tmp;
+		if(ai_type & ((uint16_t)1<<tmp)) {
+			if(ain_raw[tmp]>=input_on_level) din[tmp]=1;else din[tmp]=0;
+			if(ain_raw[tmp]<=break_level) din_break[tmp]=1;else din_break[tmp]=0;
+			if(ain_raw[tmp]>=short_circuit_level) din_short_circuit[tmp]=1;else din_short_circuit[tmp]=0;
+			if(din_break[tmp] || din_short_circuit[tmp]) din_fault[tmp] = 1;else din_fault[tmp]=0;
+			if(din[tmp]) tmp_di_state_reg |= (uint16_t)1<<tmp;
+			if(din_short_circuit[tmp]) tmp_di_sh_circ_reg |= (uint16_t)1<<tmp;
+			if(din_break[tmp]) tmp_di_break_reg |= (uint16_t)1<<tmp;
+			if(din_fault[tmp]) tmp_di_fault_reg |= (uint16_t)1<<tmp;
+		}
 	}
 	di_state_reg = tmp_di_state_reg;
 	di_sh_circ_reg = tmp_di_sh_circ_reg;

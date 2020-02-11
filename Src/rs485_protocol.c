@@ -23,6 +23,7 @@ extern uint16_t VirtAddVarTab[NB_OF_VAR];
 uint8_t net_address = 0x01;
 
 extern short ain[AI_CNT];
+extern short ain_raw[AI_CNT];
 extern short ireg[IREG_CNT];
 extern uint16_t ai_type;
 
@@ -168,8 +169,8 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						tx_ptr[3+tmp*2] = ireg[mem_addr+tmp]>>8;
 						tx_ptr[4+tmp*2] = ireg[mem_addr+tmp]&0xFF;
 					}else if(mem_addr+tmp<IREG_CNT + AI_CNT) {
-						tx_ptr[3+tmp*2] = ain[mem_addr+tmp-IREG_CNT]>>8;
-						tx_ptr[4+tmp*2] = ain[mem_addr+tmp-IREG_CNT]&0xFF;
+						tx_ptr[3+tmp*2] = ain_raw[mem_addr+tmp-IREG_CNT]>>8;
+						tx_ptr[4+tmp*2] = ain_raw[mem_addr+tmp-IREG_CNT]&0xFF;
 					}else if(mem_addr+tmp==IREG_CNT + AI_CNT) {
 						tx_ptr[3+tmp*2] = ai_type>>8;
 						tx_ptr[4+tmp*2] = ai_type&0xFF;

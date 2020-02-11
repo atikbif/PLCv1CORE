@@ -61,6 +61,7 @@ extern unsigned short sys_tmr;
 unsigned short work_time = 1;
 extern unsigned short plc_cycle;
 extern short ain[AI_CNT];
+extern short ain_raw[AI_CNT];
 
 uint16_t ai_type = 0xFFFF;
 
@@ -80,6 +81,7 @@ osThreadId progTaskHandle;
 /* USER CODE BEGIN FunctionPrototypes */
 
 extern void tcp_server_init(void);
+extern void calculate_adc();
 void update_ethip_intern_regs();
    
 /* USER CODE END FunctionPrototypes */
@@ -206,9 +208,10 @@ void StartDefaultTask(void const * argument)
 					  else { value = adc_sum[i]/10; }	// mV
 					  adc_sum[i] = 0;
 					  //ireg[4+i] = value;
-					  ain[i]=value;
+					  ain_raw[i]=value;
 				  }
 				  filter_cnt = 0;
+				  calculate_adc();
 				  update_ethip_ain();
 			  }
 		  }

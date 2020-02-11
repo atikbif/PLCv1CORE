@@ -7,6 +7,10 @@
 unsigned short plc_cycle = 1;
 
 short ain[AI_CNT];
+short ain_raw[AI_CNT];
+unsigned char ain_under[AI_CNT];
+unsigned char ain_over[AI_CNT];
+unsigned char ain_alarm[AI_CNT];
 unsigned char din[DI_CNT];
 unsigned char dinr[DI_CNT];
 unsigned char dinf[DI_CNT];
@@ -35,6 +39,10 @@ short p1_v36=0;
 short p1_v37=0;
 
 void inc_timers(){
+}
+
+void calculate_adc() {
+
 }
 
 void ld_process(void) {
