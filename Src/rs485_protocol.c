@@ -22,9 +22,9 @@ extern uint16_t VirtAddVarTab[NB_OF_VAR];
 
 uint8_t net_address = 0x01;
 
-extern short ain[AI_CNT];
-extern short ain_raw[AI_CNT];
-extern short ireg[IREG_CNT];
+extern unsigned short ain[AI_CNT];
+extern unsigned short ain_raw[AI_CNT];
+extern unsigned short ireg[IREG_CNT];
 extern uint16_t ai_type;
 
 extern uint16_t di_state_reg;

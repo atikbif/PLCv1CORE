@@ -9,8 +9,8 @@
 #include <stdint.h>
 #include "os_conf.h"
 
-extern short ain_raw[AI_CNT];
-extern short ain[AI_CNT];
+extern unsigned short ain_raw[AI_CNT];
+extern unsigned short ain[AI_CNT];
 extern unsigned char ain_under[AI_CNT];
 extern unsigned char ain_over[AI_CNT];
 extern unsigned char ain_alarm[AI_CNT];

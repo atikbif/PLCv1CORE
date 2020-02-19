@@ -60,8 +60,8 @@
 extern unsigned short sys_tmr;
 unsigned short work_time = 1;
 extern unsigned short plc_cycle;
-extern short ain[AI_CNT];
-extern short ain_raw[AI_CNT];
+extern unsigned short ain[AI_CNT];
+extern unsigned short ain_raw[AI_CNT];
 
 uint16_t ai_type = 0xFFFF;
 
@@ -69,7 +69,7 @@ uint8_t adc_spi_tx[32];
 uint8_t adc_spi_rx[32];
 uint32_t adc_sum[14];
 
-extern short ireg[IREG_CNT];
+extern unsigned short ireg[IREG_CNT];
 
 extern SPI_HandleTypeDef hspi1;
 
@@ -82,7 +82,8 @@ osThreadId progTaskHandle;
 
 extern void tcp_server_init(void);
 extern void calculate_adc();
-void update_ethip_intern_regs();
+extern void update_ethip_intern_regs();
+extern void update_ethip_intern_bits();
    
 /* USER CODE END FunctionPrototypes */
 
@@ -218,6 +219,7 @@ void StartDefaultTask(void const * argument)
 	  }else if(adc_spi_tmr==10) {
 		  adc_spi_tmr=0;
 		  update_ethip_intern_regs();
+		  update_ethip_intern_bits();
 	  }
 
 
