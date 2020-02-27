@@ -188,7 +188,7 @@ void DMA1_Stream6_IRQHandler(void)
 		LL_DMA_ClearFlag_TC6(DMA1);
 		/* Call function Transmission complete Callback */
 		LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_6);
-		dir2_tmr = 2;
+		dir2_tmr = 3;
 	}
 	if(LL_DMA_IsActiveFlag_TE6(DMA1))
 	{

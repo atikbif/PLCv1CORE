@@ -22,6 +22,9 @@ uint16_t rx2_cnt = 0;
 uint16_t rx2_tmr = 0;
 uint8_t dir2_tmr = 0;
 
+extern const uint16_t canal2_req_count;
+extern const uint16_t canal1_req_count;
+
 __weak void rx1_callback(uint8_t* rx_ptr,uint16_t rx_cnt) {
 
 }
@@ -32,7 +35,7 @@ __weak void rx2_callback(uint8_t* rx_ptr,uint16_t rx_cnt) {
 
 void uart1_scan(void) {
 
-	if(rx1_cnt && rx1_tmr>=UART_RX_READY_TIME_MS) {
+	if(canal1_req_count && rx1_cnt && rx1_tmr>=UART_RX_READY_TIME_MS) {
 		rx1_callback(rx1_buf,rx1_cnt);
 		rx1_cnt = 0;
 		rx1_tmr = 0;
@@ -41,7 +44,7 @@ void uart1_scan(void) {
 
 void uart2_scan(void) {
 
-	if(rx2_cnt && rx2_tmr>=UART_RX_READY_TIME_MS) {
+	if(canal2_req_count==0 && rx2_cnt && rx2_tmr>=UART_RX_READY_TIME_MS) {
 		rx2_callback(rx2_buf,rx2_cnt);
 		rx2_cnt = 0;
 		rx2_tmr = 0;

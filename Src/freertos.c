@@ -36,6 +36,7 @@
 #include "dout.h"
 #include "ain.h"
 #include "udp_server.h"
+#include "modbus_master.h"
 
 /* USER CODE END Includes */
 
@@ -69,6 +70,9 @@ uint8_t adc_spi_tx[32];
 uint8_t adc_spi_rx[32];
 uint32_t adc_sum[14];
 
+unsigned char scada_bits[16];
+unsigned short scada_regs[16];
+
 extern unsigned short ireg[IREG_CNT];
 
 extern SPI_HandleTypeDef hspi1;
@@ -84,6 +88,8 @@ extern void tcp_server_init(void);
 extern void calculate_adc();
 extern void update_ethip_intern_regs();
 extern void update_ethip_intern_bits();
+extern void update_ethip_scada_bits();
+extern void update_ethip_scada_regs();
    
 /* USER CODE END FunctionPrototypes */
 
@@ -137,11 +143,11 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 1024);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of progTask */
-  osThreadDef(progTask, ProgTask, osPriorityBelowNormal, 0, 512);
+  osThreadDef(progTask, ProgTask, osPriorityBelowNormal, 0, 1024);
   progTaskHandle = osThreadCreate(osThread(progTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -220,6 +226,8 @@ void StartDefaultTask(void const * argument)
 		  adc_spi_tmr=0;
 		  update_ethip_intern_regs();
 		  update_ethip_intern_bits();
+		  update_ethip_scada_bits();
+		  update_ethip_scada_regs();
 	  }
 
 
@@ -227,6 +235,9 @@ void StartDefaultTask(void const * argument)
 
 	  uart1_scan();
 	  uart2_scan();
+
+	  modbus_master_process();
+
 	  osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
