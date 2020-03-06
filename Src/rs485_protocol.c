@@ -44,6 +44,8 @@ extern unsigned char ibit[IBIT_CNT];
 extern uint8_t ip_addr[4];
 extern uint8_t ip_mask[4];
 extern uint8_t ip_gate[4];
+extern uint16_t rs485_conf1;
+extern uint16_t rs485_conf2;
 
 static void modbus_error(unsigned char func, unsigned char code, uint8_t * tx_ptr, void (*send)(uint8_t*,uint16_t)) {
 	unsigned short crc=0;
@@ -236,6 +238,14 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						tx_ptr[3+tmp*2] = ip_gate[2];
 						tx_ptr[4+tmp*2] = ip_gate[3];
 						break;
+					case 8:
+						tx_ptr[3+tmp*2] = rs485_conf1>>8;
+						tx_ptr[4+tmp*2] = rs485_conf1&0xFF;
+						break;
+					case 9:
+						tx_ptr[3+tmp*2] = rs485_conf2>>8;
+						tx_ptr[4+tmp*2] = rs485_conf2&0xFF;
+						break;
 					default:
 						tx_ptr[3+tmp*2] = 0;
 						tx_ptr[4+tmp*2] = 0;
@@ -292,6 +302,14 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 						ip_gate[2] = cnt>>8;
 						ip_gate[3] = cnt & 0xFF;
 						EE_WriteVariable(VirtAddVarTab[8],cnt);
+						break;
+					case 8:
+						rs485_conf1 = cnt;
+						EE_WriteVariable(VirtAddVarTab[10],rs485_conf1);
+						break;
+					case 9:
+						rs485_conf2 = cnt;
+						EE_WriteVariable(VirtAddVarTab[11],rs485_conf2);
 						break;
 				}
 
@@ -351,6 +369,14 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 							ip_gate[2] = rx_ptr[7+tmp*2];
 							ip_gate[3] = rx_ptr[8+tmp*2];
 							EE_WriteVariable(VirtAddVarTab[8],value);
+							break;
+						case 8:
+							rs485_conf1 = value;
+							EE_WriteVariable(VirtAddVarTab[10],rs485_conf1);
+							break;
+						case 9:
+							rs485_conf2 = value;
+							EE_WriteVariable(VirtAddVarTab[11],rs485_conf2);
 							break;
 					}
 				}

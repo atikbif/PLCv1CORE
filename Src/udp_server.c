@@ -31,6 +31,8 @@ extern uint8_t ip_mask[4];
 extern uint8_t ip_gate[4];
 extern uint16_t ai_type;
 extern uint8_t net_address;
+extern uint16_t rs485_conf1;
+extern uint16_t rs485_conf2;
 
 static void udp_server_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
 static void inline send_udp_data(struct udp_pcb *upcb,const ip_addr_t *addr,u16_t port,u16_t length);
@@ -173,6 +175,14 @@ void udp_server_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p
 				answer[4+tmp*2] = ip_gate[2];
 				answer[5+tmp*2] = ip_gate[3];
 				break;
+			case 8:
+				answer[4+tmp*2] = rs485_conf1>>8;
+				answer[5+tmp*2] = rs485_conf1&0xFF;
+				break;
+			case 9:
+				answer[4+tmp*2] = rs485_conf2>>8;
+				answer[5+tmp*2] = rs485_conf2&0xFF;
+				break;
 			default:
 				answer[4+tmp*2] = 0;
 				answer[5+tmp*2] = 0;
@@ -247,6 +257,14 @@ void udp_server_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p
 					ip_gate[2] = data[7+tmp*2];
 					ip_gate[3] = data[8+tmp*2];
 					EE_WriteVariable(VirtAddVarTab[8],value);
+					break;
+				case 8:
+					rs485_conf1 = value;
+					EE_WriteVariable(VirtAddVarTab[10],rs485_conf1);
+					break;
+				case 9:
+					rs485_conf2 = value;
+					EE_WriteVariable(VirtAddVarTab[11],rs485_conf2);
 					break;
 			}
 		  }
