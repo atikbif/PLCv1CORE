@@ -95,6 +95,8 @@ void Error_Handler(void);
 #define LED_G_GPIO_Port GPIOI
 /* USER CODE BEGIN Private defines */
 
+#define LWIP_NETIF_LINK_CALLBACK        1
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

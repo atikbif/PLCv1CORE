@@ -53,24 +53,48 @@ unsigned short rs_trig(unsigned short prev_value,unsigned short a, unsigned shor
 }
 
 unsigned short delay_on(unsigned short *ms_tmr, unsigned short *filter_on, unsigned short a, unsigned short b){
-	if(a==0) {*ms_tmr=0;*filter_on=1;return 0;}
+	/*if(a==0) {*ms_tmr=0;*filter_on=1;return 0;}
 	else
 	{
 		if(*filter_on) {
 			if(*ms_tmr>=b) {*filter_on=0;return 1;}
 			else return 0;
 		}else return 1;
+	}*/
+
+	if(a==0) {*ms_tmr=0;*filter_on=0;return 0;}
+	else
+	{
+		if((*filter_on==0) && ((*ms_tmr<b) || (b==0))) *filter_on=1;
+
+		if(*filter_on) {
+			if(*ms_tmr>=b) {*filter_on=0;return 1;}
+			else return 0;
+		}else return 1;
 	}
+	return 0;
 }
 unsigned short delay_off(unsigned short *ms_tmr, unsigned short *filter_on, unsigned short a, unsigned short b){
-	if(a) {*ms_tmr=0;*filter_on=1;return 1;}
+	/*if(a) {*ms_tmr=0;*filter_on=1;return 1;}
 	else
 	{
 		if(*filter_on) {
 			if(*ms_tmr>=b) {*filter_on=0;return 0;}
 			else return 1;
 		}else return 0;
+	}*/
+
+	if(a) {*ms_tmr=0;*filter_on=0;return 1;}
+	else
+	{
+		if((*filter_on==0) && ((*ms_tmr<b) || (b==0))) *filter_on=1;
+
+		if(*filter_on) {
+			if(*ms_tmr>=b) {*filter_on=0;return 0;}
+			else return 1;
+		}else return 0;
 	}
+	return 0;
 }
 
 unsigned short empty(unsigned short v){return 0;}

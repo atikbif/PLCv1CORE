@@ -47,6 +47,8 @@
 #define LWIP_TCPIP_CORE_LOCKING    1
 #define LWIP_FREERTOS_CHECK_CORE_LOCKING	1
 
+#define LWIP_NETIF_LINK_CALLBACK        1
+
 //#define MEM_STATS						1
 //#define MEMP_STATS                    1
 //#define TCP_QUEUE_OOSEQ  				0
