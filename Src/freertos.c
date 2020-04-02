@@ -64,6 +64,12 @@ unsigned short work_time = 1;
 extern unsigned short plc_cycle;
 extern unsigned short ain[AI_CNT];
 extern unsigned short ain_raw[AI_CNT];
+extern unsigned char ain_alarm[AI_CNT];
+
+unsigned short prev_ain[AI_CNT] = {0};
+unsigned char prev_ain_alarm[AI_CNT] = {0};
+extern uint16_t update_ai;
+extern uint16_t used_ai;
 
 uint16_t ai_type = 0xFFFF;
 
@@ -226,6 +232,15 @@ void StartDefaultTask(void const * argument)
 				  }
 				  filter_cnt = 0;
 				  calculate_adc();
+				  for(i=0;i<AI_CNT;i++) {
+					  if(used_ai & (1<<i)) {
+						  if((prev_ain[i] != ain[i]) || (prev_ain_alarm[i] != ain_alarm[i])) {
+							  update_ai |= 1<<i;
+							  prev_ain[i] = ain[i];
+							  prev_ain_alarm[i] = ain_alarm[i];
+						  }
+					  }
+				  }
 				  update_ethip_ain();
 			  }
 		  }

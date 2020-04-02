@@ -351,9 +351,11 @@ void canTask(void const * argument) {
 		update_ai_data();
 		update_di_data();
 		inp_tmr++;
-		if(inp_tmr>=500) {
-			inp_tmr = 0;
+		if(inp_tmr==30000) {
 			update_di=0x3FFF;
+		}
+		else if(inp_tmr>=60000) {
+			inp_tmr = 0;
 			update_ai=0x3FFF;
 		}
 		can_write_from_stack();
