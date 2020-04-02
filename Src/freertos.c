@@ -37,6 +37,7 @@
 #include "ain.h"
 #include "udp_server.h"
 #include "modbus_master.h"
+#include "can_task.h"
 
 /* USER CODE END Includes */
 
@@ -76,6 +77,8 @@ unsigned short scada_regs[16];
 extern unsigned short ireg[IREG_CNT];
 
 extern SPI_HandleTypeDef hspi1;
+
+osThreadId canTaskHandle;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -152,6 +155,10 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+  osThreadDef(can, canTask, osPriorityNormal, 0, 512);
+  canTaskHandle = osThreadCreate(osThread(can), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -182,8 +189,8 @@ void StartDefaultTask(void const * argument)
   {
 	  led_tmr++;
 	  if(led_tmr>=1000) {led_tmr=0;}
-	  if(led_tmr==0) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_SET);
-	  else if(led_tmr==10) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_RESET);
+	  //if(led_tmr==0) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_SET);
+	  //else if(led_tmr==10) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_RESET);
 
 	  adc_spi_tmr++;
 	  if(adc_spi_tmr==2) {

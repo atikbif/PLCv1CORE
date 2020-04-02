@@ -25,6 +25,8 @@ unsigned short frsh[FRSH_CNT];
 double frd[FRD_CNT];
 unsigned long frl[FRL_CNT];
 
+uint16_t used_ai = 0x0000;
+
 
 extern unsigned short work_time;
 
