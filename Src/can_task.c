@@ -9,6 +9,7 @@
 #include "cmsis_os.h"
 #include "main.h"
 #include "os_conf.h"
+#include "can_tx_stack.h"
 
 extern CAN_HandleTypeDef hcan1;
 static CAN_RxHeaderTypeDef   RxHeader;
@@ -36,6 +37,36 @@ extern unsigned char ain_alarm[AI_CNT];
 extern unsigned char din[DI_CNT];
 extern uint8_t din_fault[DI_CNT];
 
+extern const char* di_names[14];
+extern const char* do_names[6];
+extern const char* adc_names[14];
+
+extern uint8_t tdu[14];
+
+extern tx_stack can1_tx_stack;
+extern uint16_t app_id;
+extern uint8_t can_addr;
+
+static void can_write_from_stack() {
+	tx_stack_data packet;
+	uint8_t i = 0;
+	uint8_t try = 0;
+	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan1)!=0) {
+		try++;
+		if(try>=10) return;
+		if(get_tx_can_packet(&can1_tx_stack,&packet)) {
+			if(packet.length>8) continue;
+			TxHeader.StdId = packet.id;
+			TxHeader.ExtId = 0;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.TransmitGlobalTime = DISABLE;
+			TxHeader.DLC = packet.length;
+			for(i=0;i<packet.length;++i) TxData[i] = packet.data[i];
+			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+		}else break;
+	}
+}
 
 static void initCANFilter() {
 	CAN_FilterTypeDef  sFilterConfig;
@@ -60,6 +91,8 @@ static void update_di_data() {
 	uint16_t di_fitted = 0x0000;
 	uint8_t i = 0;
 
+	tx_stack_data packet;
+
 	di_fitted = ai_type & 0x3FFF;
 	di_fitted &= ~used_ai;
 	di_tmr++;
@@ -72,18 +105,15 @@ static void update_di_data() {
 					if(din_fault[i]) send_fault |= 1<<i;
 				}
 			}
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 5;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x01; // packed physical digits
-			TxData[1] = 0x01; // start bit
-			TxData[2] = send_state; // state
-			TxData[3] = send_fault; // fault
-			TxData[4] = di_mask; // mask
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 5;
+			packet.data[0] = 0x01; // packed physical digits
+			packet.data[1] = 0x01; // start bit
+			packet.data[2] = send_state; // state
+			packet.data[3] = send_fault; // fault
+			packet.data[4] = di_mask; // mask
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			update_di &= 0xFF00;
 		}
 	}else if(di_tmr==40) {
@@ -97,18 +127,15 @@ static void update_di_data() {
 					if(din_fault[i+8]) send_fault |= 1<<i;
 				}
 			}
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 5;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x01; // packed physical digits
-			TxData[1] = 0x09; // start bit
-			TxData[2] = send_state; // state
-			TxData[3] = send_fault; // fault
-			TxData[4] = di_mask; // mask
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 5;
+			packet.data[0] = 0x01; // packed physical digits
+			packet.data[1] = 0x09; // start bit
+			packet.data[2] = send_state; // state
+			packet.data[3] = send_fault; // fault
+			packet.data[4] = di_mask; // mask
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			update_di &= 0x00FF;
 		}
 		di_tmr=0;
@@ -119,33 +146,31 @@ static void update_ai_data() {
 	static uint16_t ai_tmr=0;
 	static uint8_t ai_num = 0;
 	static const uint8_t ai_max_num = 14;
+
+	tx_stack_data packet;
+
 	ai_tmr++;
 	if(ai_tmr>=50) {
 		ai_tmr=0;
 		for(;;) {
 			if((used_ai & (1<<ai_num)) && (update_ai & (1<<ai_num))) {
-				TxHeader.StdId = 0x0400 | 0x07;	// event
-				TxHeader.ExtId = 0;
-				TxHeader.RTR = CAN_RTR_DATA;
-				TxHeader.IDE = CAN_ID_STD;
-				TxHeader.DLC = 8;
-				TxHeader.TransmitGlobalTime = DISABLE;
-				TxData[0] = 0x05; // Analogue data scaled with status
-				TxData[1] = ai_num + 1; // inputs number
-				TxData[2] = ain[ai_num]; // ain value
-				TxData[3] = 0x02; // tdu type
+
+				packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+				packet.length = 8;
+				packet.data[0] = 0x05; // Analogue data scaled with status
+				packet.data[1] = ai_num + 1; // inputs number
+				packet.data[2] = ain[ai_num]; // ain value
+				packet.data[3] = tdu[ai_num]; // tdu type
 				if(ain_alarm[ai_num]) {
-					TxData[4] = 0x02; // alarm bits
-					TxData[5] = 0x00;
+					packet.data[4] = 0x02; // alarm bits
+					packet.data[5] = 0x00;
 				}else {
-					TxData[4] = 0x00; // alarm bits
-					TxData[5] = 0x00;
+					packet.data[4] = 0x00; // alarm bits
+					packet.data[5] = 0x00;
 				}
-				TxData[6] = ain_raw[ai_num] & 0xFF; // raw value
-				TxData[7] = ain_raw[ai_num] >> 8;
-
-				HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
-
+				packet.data[6] = ain_raw[ai_num] & 0xFF; // raw value
+				packet.data[7] = ain_raw[ai_num] >> 8;
+				add_tx_can_packet(&can1_tx_stack,&packet);
 				update_ai &= ~(1<<ai_num);
 				break;
 			}else {
@@ -158,188 +183,137 @@ static void update_ai_data() {
 
 static void update_all_data() {
 	uint16_t di_fitted = 0;
+	tx_stack_data packet;
 	update_tmr++;
 	switch(update_tmr) {
 		case 10:	// network status
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 3;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x0D; // request not fragmented, eoid - 0x0D
-			TxData[1] = 0x01; // cluster number
-			TxData[2] = 0x00; // not networked
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 3;
+			packet.data[0] = 0x0D; // request not fragmented, eoid - 0x0D
+			packet.data[1] = 0x01; // cluster number
+			packet.data[2] = 0x00; // not networked
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 20:	// module data, internal faults
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x09; // internal faults
-			TxData[2] = 0x00; // faults value
-			TxData[3] = 0x00; // faults value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x09; // internal faults
+			packet.data[2] = 0x00; // faults value
+			packet.data[3] = 0x00; // faults value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 30:	// module data, analogue o/p fitted
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x08; // analogue o/p fitted
-			TxData[2] = 0x00; // value
-			TxData[3] = 0x00; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x08; // analogue o/p fitted
+			packet.data[2] = 0x00; // value
+			packet.data[3] = 0x00; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 40:	// module data, relay o/p fitted
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x07; // relay o/p fitted
-			TxData[2] = 0x3F; // value
-			TxData[3] = 0x00; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x07; // relay o/p fitted
+			packet.data[2] = 0x3F; // value
+			packet.data[3] = 0x00; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 50:	// module data, switch i/p fitted
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x06; // switch i/p fitted
-			TxData[2] = 0x00; // value
-			TxData[3] = 0x00; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x06; // switch i/p fitted
+			packet.data[2] = 0x00; // value
+			packet.data[3] = 0x00; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 60:	// module data, digital i/p fitted
 			di_fitted = ai_type & 0x3FFF;
 			di_fitted &= ~used_ai;
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x05; // digital i/p fitted
-			TxData[2] = di_fitted & 0xFF; // value
-			TxData[3] = di_fitted >> 8; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x05; // digital i/p fitted
+			packet.data[2] = di_fitted & 0xFF; // value
+			packet.data[3] = di_fitted >> 8; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 70:	// module data, analogue i/p fitted
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x04; // analogue i/p fitted
-			TxData[2] = 0xFF; // value
-			TxData[3] = 0x3F; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x04; // analogue i/p fitted
+			packet.data[2] = 0xFF; // value
+			packet.data[3] = 0x3F; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 80:	// module data, os version
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 8;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x02; // os version
-			TxData[2] = 0x30; // value
-			TxData[3] = 0x31; // value
-			TxData[4] = 0x2E; // value
-			TxData[5] = 0x34; // value
-			TxData[6] = 0x30; // value
-			TxData[7] = 0x00; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 8;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x02; // os version
+			packet.data[2] = 0x30; // value
+			packet.data[3] = 0x31; // value
+			packet.data[4] = 0x2E; // value
+			packet.data[5] = 0x34; // value
+			packet.data[6] = 0x30; // value
+			packet.data[7] = 0x00; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 90:	// module data, bootloader version
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 8;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x01; // bootloader version
-			TxData[2] = 0x30; // value
-			TxData[3] = 0x31; // value
-			TxData[4] = 0x2E; // value
-			TxData[5] = 0x30; // value
-			TxData[6] = 0x37; // value
-			TxData[7] = 0x00; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 8;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x01; // bootloader version
+			packet.data[2] = 0x30; // value
+			packet.data[3] = 0x31; // value
+			packet.data[4] = 0x2E; // value
+			packet.data[5] = 0x30; // value
+			packet.data[6] = 0x37; // value
+			packet.data[7] = 0x00; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 100:	// module data, application cn
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 4;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x03; // application cn
-			TxData[2] = 0x10; // value
-			TxData[3] = 0x27; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x03; // application cn
+			packet.data[2] = app_id & 0xFF; // value
+			packet.data[3] = app_id >> 8; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 110:	// module data, module type
-			TxHeader.StdId = 0x0400 | 0x07;	// event
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 3;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x1F; // request not fragmented, eoid - 0x1F
-			TxData[1] = 0x00; // module type
-			TxData[2] = 0x01; // value
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 3;
+			packet.data[0] = 0x1F; // request not fragmented, eoid - 0x1F
+			packet.data[1] = 0x00; // module type
+			packet.data[2] = 0x01; // value
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 120:	// display tx mask digital i/p
 			di_fitted = ai_type & 0x3FFF;
 			di_fitted &= ~used_ai;
-			TxHeader.StdId = 0x0400 | 0x06;	// action
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 5;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x0A; // tx mask, eoid - 0x0A
-			TxData[1] = 0x00; // display tx mask
-			TxData[2] = di_fitted & 0xFF; // value
-			TxData[3] = di_fitted >> 8; // value
-			TxData[4] = 0x01; // io type - digital i/p
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x06 | (can_addr<<3);	// event
+			packet.length = 5;
+			packet.data[0] = 0x0A; // tx mask, eoid - 0x0A
+			packet.data[1] = 0x00; // display tx mask
+			packet.data[2] = di_fitted & 0xFF; // value
+			packet.data[3] = di_fitted >> 8; // value
+			packet.data[4] = 0x01; // io type - digital i/p
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 		case 130:	// display tx mask analogue i/p
-			TxHeader.StdId = 0x0400 | 0x06;	// action
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 5;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x0A; // tx mask, eoid - 0x0A
-			TxData[1] = 0x00; // display tx mask
-			TxData[2] = used_ai & 0xFF; // value
-			TxData[3] = used_ai >> 8; // value
-			TxData[4] = 0x00; // io type - analogue i/p
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+			packet.id = 0x0400 | 0x06 | (can_addr<<3);	// event
+			packet.length = 5;
+			packet.data[0] = 0x0A; // tx mask, eoid - 0x0A
+			packet.data[1] = 0x00; // display tx mask
+			packet.data[2] = used_ai & 0xFF; // value
+			packet.data[3] = used_ai >> 8; // value
+			packet.data[4] = 0x00; // io type - analogue i/p
+			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 	}
 	if(update_tmr>=200) {update_tmr=0;update_all=0;update_di=0x3FFF;update_ai=0x3FFF;}
@@ -351,6 +325,7 @@ void canTask(void const * argument) {
 	uint8_t heartbeat_value = 1;
 	uint16_t i = 0;
 	uint16_t inp_tmr=0;
+	tx_stack_data packet;
 	initCANFilter();
 	HAL_CAN_Start(&hcan1);
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
@@ -358,15 +333,12 @@ void canTask(void const * argument) {
 		cnt++;
 		if(cnt>=500) {
 			cnt = 0;
-			TxHeader.StdId = 0x0400 | 0x01;
-			TxHeader.ExtId = 0;
-			TxHeader.RTR = CAN_RTR_DATA;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.DLC = 2;
-			TxHeader.TransmitGlobalTime = DISABLE;
-			TxData[0] = 0x49;
-			TxData[1] = heartbeat_value++;
-			HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+
+			packet.id = 0x0400 | 0x01 | (can_addr<<3);
+			packet.length = 2;
+			packet.data[0] = 0x49;
+			packet.data[1] = heartbeat_value++;
+			add_tx_can_packet(&can1_tx_stack,&packet);
 		}
 		heartbeat_tmr++;
 		if(heartbeat_tmr>=1000) {
@@ -384,24 +356,75 @@ void canTask(void const * argument) {
 			update_di=0x3FFF;
 			update_ai=0x3FFF;
 		}
+		can_write_from_stack();
 		osDelay(1);
 	}
+}
+
+void sendIOName(uint8_t ioNum, uint8_t type, uint8_t req_node, uint8_t req_num) {
+	uint8_t name[20]={0};
+	uint8_t i = 0;
+	switch(type) {
+		case 0:	// analogue input
+			if(ioNum>=1 && ioNum<=14) {for(i=0;i<sizeof(adc_names[ioNum-1])-1;i++) name[i] = adc_names[ioNum-1][i];}
+			break;
+		case 1: // digital input
+			if(ioNum>=1 && ioNum<=14) {for(i=0;i<sizeof(di_names[ioNum-1])-1;i++) name[i] = di_names[ioNum-1][i];}
+			break;
+		case 3: // relay output
+			if(ioNum>=1 && ioNum<=6) {for(i=0;i<sizeof(do_names[ioNum-1])-1;i++) name[i] = do_names[ioNum-1][i];}
+			break;
+	}
+
+	tx_stack_data packet;
+	packet.id = (req_node<<3) | 0x05 | (can_addr<<3);
+	packet.length = 8;
+	packet.data[0] = (0x03<<5) | 0x0b; // ss-0x05 (fragmented response) eoid-0x0b(read name)
+	packet.data[1] = req_num;
+	packet.data[2] = 1; // part num
+	for(i=0;i<5;i++) packet.data[3+i] = name[i];
+	add_tx_can_packet(&can1_tx_stack,&packet);
+
+	packet.data[1] = req_num;
+	packet.data[2] = 2; // part num
+	for(i=0;i<5;i++) packet.data[3+i] = name[i+5];
+	add_tx_can_packet(&can1_tx_stack,&packet);
+
+	packet.data[1] = req_num;
+	packet.data[2] = 3; // part num
+	for(i=0;i<5;i++) packet.data[3+i] = name[i+10];
+	add_tx_can_packet(&can1_tx_stack,&packet);
+
+	packet.data[1] = req_num;
+	packet.data[2] = 4; // part num
+	for(i=0;i<5;i++) packet.data[3+i] = name[i+15];
+	add_tx_can_packet(&can1_tx_stack,&packet);
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	uint8_t srv = 0;
 	uint8_t node = 0;
-	//uint8_t ss = 0;
-	//uint8_t eoid = 0;
+	uint8_t ss = 0;
+	uint8_t eoid = 0;
+	uint8_t dir = 0;
+	uint8_t addr = 0x00;
 	if(hcan==&hcan1) {
 		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0)) {
 			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
 				//HAL_GPIO_TogglePin(LED_G_GPIO_Port,LED_G_Pin);
 				srv = RxHeader.StdId & 0x07;
 				node = (RxHeader.StdId>>3) & 0x0F;
-				//eoid = RxData[0] & 0x1F;
-				//ss = (RxData[0] >> 5) & 0x07;
+				eoid = RxData[0] & 0x1F;
+				ss = (RxData[0] >> 5) & 0x07;
+				dir = (RxData[0] >> 10) & 0x01;
+				addr = RxData[1];
+				if(dir==0x00 && node==can_addr && ss==0x01 && eoid==0x0b) { // read name request
+					uint8_t num = RxData[2];
+					uint8_t type = RxData[4];
+					uint8_t req_node = RxData[5];
+					sendIOName(num,type,req_node,addr);
+				}
 				if(srv==0x01) { // heartbeat
 					if(node<8) {
 						if(heartbeat_cnt[node]==HEARTBEAT_MAX) {update_all = 1;update_tmr = 0;}

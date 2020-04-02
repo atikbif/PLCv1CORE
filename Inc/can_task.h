@@ -8,7 +8,9 @@
 #ifndef CAN_TASK_H_
 #define CAN_TASK_H_
 
-void canTask(void const * argument);
+#include <stdint.h>
 
+void canTask(void const * argument);
+void sendIOName(uint8_t ioNum, uint8_t type, uint8_t req_node, uint8_t req_num);
 
 #endif /* CAN_TASK_H_ */

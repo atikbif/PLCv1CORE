@@ -115,6 +115,14 @@ unsigned short p1_v173=0;
 void inc_timers(){
 }
 
+const char* di_names[14] = {"","","","","","","","","","","","","","",};
+const char* do_names[6] = {"","","","","","",};
+const char* adc_names[14] = {"","","","","","","","","","","","","","",};
+uint8_t tdu[14] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
+
+uint16_t app_id = 0;
+uint8_t can_addr = 0x00;
+
 void calculate_adc(){
 	unsigned char i=0;
 	float v=0;

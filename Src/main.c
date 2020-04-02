@@ -35,6 +35,7 @@
 
 #include "os_conf.h"
 #include "eeprom.h"
+#include "can_tx_stack.h"
 
 /* USER CODE END Includes */
 
@@ -93,6 +94,7 @@ uint8_t parity2=0;
 uint8_t baud_dir2 = 3;
 
 extern uint16_t ai_type;
+tx_stack can1_tx_stack;
 
 /* USER CODE END PV */
 
@@ -257,6 +259,8 @@ int main(void)
 			errorindex++;
 		}
 	}
+
+	init_can_tx_stack(&can1_tx_stack);
 
 
   /* USER CODE END 2 */
