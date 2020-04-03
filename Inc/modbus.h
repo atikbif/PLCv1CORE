@@ -11,7 +11,7 @@
 #include "os_conf.h"
 
 #define HOLDR_COUNT 16
-#define INPR_COUNT	IREG_CNT + AI_CNT + 5
+#define INPR_COUNT	IREG_CNT + AI_CNT + 8
 #define DINPUTS_COUNT	(DI_CNT + DI_CNT + DI_CNT + DI_CNT) // дискр входы , кор. замыкание , обрыв , ошибки входов
 #define COIL_COUNT	(DO_CNT + IBIT_CNT + DI_CNT + AI_CNT)
 

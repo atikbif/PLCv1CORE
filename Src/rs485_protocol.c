@@ -47,6 +47,10 @@ extern uint8_t ip_gate[4];
 extern uint16_t rs485_conf1;
 extern uint16_t rs485_conf2;
 
+extern uint16_t app_id;
+extern uint8_t can_addr;
+extern unsigned short plc_cycle;
+
 static void modbus_error(unsigned char func, unsigned char code, uint8_t * tx_ptr, void (*send)(uint8_t*,uint16_t)) {
 	unsigned short crc=0;
 	tx_ptr[0] = net_address;
@@ -188,6 +192,15 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 4) {
 						tx_ptr[3+tmp*2] = di_fault_reg>>8;
 						tx_ptr[4+tmp*2] = di_fault_reg&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 5) {
+						tx_ptr[3+tmp*2] = app_id>>8;
+						tx_ptr[4+tmp*2] = app_id&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 6) {
+						tx_ptr[3+tmp*2] = 0;
+						tx_ptr[4+tmp*2] = can_addr;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 7) {
+						tx_ptr[3+tmp*2] = plc_cycle>>8;
+						tx_ptr[4+tmp*2] = plc_cycle&0xFF;
 					}
 				}
 				tx_ptr[0]=rx_ptr[0];
