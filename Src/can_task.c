@@ -47,6 +47,15 @@ extern tx_stack can1_tx_stack;
 extern uint16_t app_id;
 extern uint8_t can_addr;
 
+extern uint16_t cluster_regs[64];
+extern uint16_t prev_cluster_regs[64];
+
+extern uint8_t cluster_bits[224];
+extern uint8_t prev_cluster_bits[224];
+
+static uint8_t written_cluster_bits[28]={0};
+static uint8_t written_cluster_regs[64]={0};
+
 static void can_write_from_stack() {
 	tx_stack_data packet;
 	uint8_t i = 0;
@@ -81,6 +90,54 @@ static void initCANFilter() {
 	sFilterConfig.FilterActivation = ENABLE;
 	sFilterConfig.SlaveStartFilterBank = 14;
 	HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
+}
+
+static void update_cluster_bits() {
+	tx_stack_data packet;
+	uint8_t offset = can_addr*28;
+	uint8_t i=0;
+	if(can_addr>7) return;
+	for(i=0;i<28;i++) {
+		if(cluster_bits[offset+i]!=prev_cluster_bits[offset+i]) {
+			uint8_t mask = 0;
+			uint8_t state = 0;
+			uint8_t j=0;
+			for(j=0;j<8;j++) {
+				if(i+j>=28) break;
+				if(cluster_bits[offset+i+j]!=prev_cluster_bits[offset+i+j]) {
+					mask|=1<<j;
+					if(cluster_bits[offset+i+j]) state|=1<<j;
+					prev_cluster_bits[offset+i+j] = cluster_bits[offset+i+j];
+					written_cluster_bits[i+j]=1;
+				}
+			}
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x03; // packed deduced digitals
+			packet.data[1] = offset+16+i; // bit num
+			packet.data[2] = state;
+			packet.data[3] = mask;
+			add_tx_can_packet(&can1_tx_stack,&packet);
+			i+=8;
+		}
+	}
+}
+
+static void update_cluster_regs() {
+	tx_stack_data packet;
+	for(int i=0;i<64;i++) {
+		if(cluster_regs[i]!=prev_cluster_regs[i]) {
+			written_cluster_regs[i]=1;
+			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
+			packet.length = 4;
+			packet.data[0] = 0x06; // global integer values
+			packet.data[1] = 17+i; // reg num
+			packet.data[2] = cluster_regs[i] & 0xFF; // value low byte
+			packet.data[3] = cluster_regs[i] >> 8; // fault high byte
+			add_tx_can_packet(&can1_tx_stack,&packet);
+			prev_cluster_regs[i]=cluster_regs[i];
+		}
+	}
 }
 
 static void update_di_data() {
@@ -316,7 +373,21 @@ static void update_all_data() {
 			add_tx_can_packet(&can1_tx_stack,&packet);
 			break;
 	}
-	if(update_tmr>=200) {update_tmr=0;update_all=0;update_di=0x3FFF;update_ai=0x3FFF;}
+	if(update_tmr>=200) {
+		update_tmr=0;update_all=0;
+		update_di=0x3FFF;
+		update_ai=0x3FFF;
+		uint8_t i=0;
+		for(i=0;i<64;i++) {
+			if(written_cluster_regs[i]) prev_cluster_regs[i]=cluster_regs[i]+1; // provocate an update
+		}
+		if(can_addr<8) {
+			uint8_t offset = can_addr*28;
+			for(i=0;i<28;i++) {
+				if(written_cluster_bits[offset+i]) prev_cluster_bits[offset+i] = cluster_bits[offset+i]+1; // provocate an update
+			}
+		}
+	}
 }
 
 void canTask(void const * argument) {
@@ -348,6 +419,8 @@ void canTask(void const * argument) {
 			}
 		}
 		if(update_all) update_all_data();
+		update_cluster_regs();
+		update_cluster_bits();
 		update_ai_data();
 		update_di_data();
 		inp_tmr++;
@@ -431,6 +504,23 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 					if(node<8) {
 						if(heartbeat_cnt[node]==HEARTBEAT_MAX) {update_all = 1;update_tmr = 0;}
 						heartbeat_cnt[node]=0;
+					}
+				}
+				if(eoid==0x06) {
+					if(addr>=17 && addr<=80) {
+						cluster_regs[addr-17] = RxData[2] | (((uint16_t)RxData[3])<<8);
+						prev_cluster_regs[addr-17] = cluster_regs[addr-17];
+					}
+				}else if(eoid==0x03) {
+					uint8_t i=0;
+					for(i=0;i<8;i++) {
+						if(RxData[3]&(1<<i)) { // check mask
+							if( ((addr+i) >= 16) && ((addr+i) <= 239)) { // check address
+								if(RxData[2]&(1<<i)) cluster_bits[addr+i-16]=1;
+								else cluster_bits[addr+i-16]=0;
+								prev_cluster_bits[addr+i-16] = cluster_bits[addr+i-16];
+							}
+						}
 					}
 				}
 			}

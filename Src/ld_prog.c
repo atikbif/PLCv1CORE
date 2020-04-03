@@ -25,6 +25,11 @@ unsigned short frsh[FRSH_CNT];
 double frd[FRD_CNT];
 unsigned long frl[FRL_CNT];
 
+uint16_t cluster_regs[64]={0};
+uint16_t prev_cluster_regs[64]={0};
+uint8_t cluster_bits[224]={0};
+uint8_t prev_cluster_bits[224]={0};
+
 uint16_t used_ai = 0x0000;
 
 
