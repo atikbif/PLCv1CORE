@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #define CAN_TX_DATA_SIZE		8
-#define CAN_TX_STACK_LENGTH		64
+#define CAN_TX_STACK_LENGTH		80
 
 #define EMPTY_PACKET	0
 #define BUSY_PACKET		1

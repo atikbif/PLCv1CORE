@@ -10,6 +10,7 @@
 #include "main.h"
 #include "os_conf.h"
 #include "can_tx_stack.h"
+#include <string.h>
 
 extern CAN_HandleTypeDef hcan1;
 static CAN_RxHeaderTypeDef   RxHeader;
@@ -125,7 +126,8 @@ static void update_cluster_bits() {
 
 static void update_cluster_regs() {
 	tx_stack_data packet;
-	for(int i=0;i<64;i++) {
+	static uint8_t i =0;
+	while(1) {
 		if(cluster_regs[i]!=prev_cluster_regs[i]) {
 			written_cluster_regs[i]=1;
 			packet.id = 0x0400 | 0x07 | (can_addr<<3);	// event
@@ -136,7 +138,11 @@ static void update_cluster_regs() {
 			packet.data[3] = cluster_regs[i] >> 8; // fault high byte
 			add_tx_can_packet(&can1_tx_stack,&packet);
 			prev_cluster_regs[i]=cluster_regs[i];
+			i++;if(i>=64) i=0;
+			break;
 		}
+		i++;
+		if(i>=64) {i=0;break;}
 	}
 }
 
@@ -396,6 +402,7 @@ void canTask(void const * argument) {
 	uint8_t heartbeat_value = 1;
 	uint16_t i = 0;
 	uint16_t inp_tmr=0;
+	uint16_t clust_tmr = 0;
 	tx_stack_data packet;
 	initCANFilter();
 	HAL_CAN_Start(&hcan1);
@@ -419,7 +426,12 @@ void canTask(void const * argument) {
 			}
 		}
 		if(update_all) update_all_data();
-		update_cluster_regs();
+		clust_tmr++;
+		if(clust_tmr>=15) {
+			clust_tmr=0;
+			update_cluster_regs();
+		}
+
 		update_cluster_bits();
 		update_ai_data();
 		update_di_data();
@@ -438,16 +450,29 @@ void canTask(void const * argument) {
 
 void sendIOName(uint8_t ioNum, uint8_t type, uint8_t req_node, uint8_t req_num) {
 	uint8_t name[20]={0};
+	uint8_t lngth = 0;
 	uint8_t i = 0;
 	switch(type) {
 		case 0:	// analogue input
-			if(ioNum>=1 && ioNum<=14) {for(i=0;i<sizeof(adc_names[ioNum-1])-1;i++) name[i] = adc_names[ioNum-1][i];}
+			if(ioNum>=1 && ioNum<=14) {
+				lngth = strlen(adc_names[ioNum-1]);
+				if(lngth>20) lngth = 20;
+				for(i=0;i<lngth;i++) name[i] = adc_names[ioNum-1][i];
+			}
 			break;
 		case 1: // digital input
-			if(ioNum>=1 && ioNum<=14) {for(i=0;i<sizeof(di_names[ioNum-1])-1;i++) name[i] = di_names[ioNum-1][i];}
+			if(ioNum>=1 && ioNum<=14) {
+				lngth = strlen(di_names[ioNum-1]);
+				if(lngth>20) lngth = 20;
+				for(i=0;i<lngth;i++) name[i] = di_names[ioNum-1][i];
+			}
 			break;
 		case 3: // relay output
-			if(ioNum>=1 && ioNum<=6) {for(i=0;i<sizeof(do_names[ioNum-1])-1;i++) name[i] = do_names[ioNum-1][i];}
+			if(ioNum>=1 && ioNum<=6) {
+				lngth = strlen(do_names[ioNum-1]);
+				if(lngth>20) lngth = 20;
+				for(i=0;i<lngth;i++) name[i] = do_names[ioNum-1][i];
+			}
 			break;
 	}
 
