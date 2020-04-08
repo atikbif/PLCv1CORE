@@ -52,6 +52,23 @@ unsigned short rs_trig(unsigned short prev_value,unsigned short a, unsigned shor
 	return 0;
 }
 
+unsigned short counter(struct counter_state *state, unsigned char clk, unsigned char dir, unsigned char load, unsigned long preset) {
+	if(load && load!=state->load) {
+		state->counter = preset;
+	}
+	state->load = load;
+	if(clk && clk!=state->clock) {
+		if(dir) {
+			if(state->counter < 0xFFFFFFFF) state->counter++;
+		}else {
+			if(state->counter) state->counter--;
+		}
+	}
+	state->clock = clk;
+
+	return state->counter;
+}
+
 unsigned short delay_on(unsigned short *ms_tmr, unsigned short *filter_on, unsigned short a, unsigned short b){
 	/*if(a==0) {*ms_tmr=0;*filter_on=1;return 0;}
 	else

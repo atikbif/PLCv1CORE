@@ -8,6 +8,14 @@
 #ifndef ELEMENTS_H_
 #define ELEMENTS_H_
 
+struct counter_state{
+	unsigned char clock;
+	unsigned char load;
+	unsigned long counter;
+};
+
+unsigned short counter(struct counter_state *state, unsigned char clk, unsigned char dir, unsigned char load, unsigned long preset);
+
 unsigned char open_contact(unsigned char contact, unsigned char inpState);
 unsigned char clos_contact(unsigned char contact, unsigned char inpState);
 
