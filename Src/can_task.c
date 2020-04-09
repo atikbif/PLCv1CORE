@@ -57,6 +57,26 @@ extern uint8_t prev_cluster_bits[224];
 static uint8_t written_cluster_bits[28]={0};
 static uint8_t written_cluster_regs[64]={0};
 
+static void init_can_addr_pins() {
+
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	__HAL_RCC_GPIOG_CLK_ENABLE();
+
+	GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+}
+
+static void read_can_addr() {
+	can_addr = 0;
+	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_5)==GPIO_PIN_RESET) can_addr |= 0x01;
+	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_6)==GPIO_PIN_RESET) can_addr |= 0x02;
+	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_7)==GPIO_PIN_RESET) can_addr |= 0x04;
+	//if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_8)==GPIO_PIN_RESET) can_addr |= 0x01;
+}
+
 static void can_write_from_stack() {
 	tx_stack_data packet;
 	uint8_t i = 0;
@@ -99,7 +119,8 @@ static void update_cluster_bits() {
 	uint8_t i=0;
 	if(can_addr>7) return;
 	for(i=0;i<28;i++) {
-		if(cluster_bits[offset+i]!=prev_cluster_bits[offset+i]) {
+		if(cluster_bits[offset+i]!=prev_cluster_bits[offset+i])
+		{
 			uint8_t mask = 0;
 			uint8_t state = 0;
 			uint8_t j=0;
@@ -119,7 +140,7 @@ static void update_cluster_bits() {
 			packet.data[2] = state;
 			packet.data[3] = mask;
 			add_tx_can_packet(&can1_tx_stack,&packet);
-			i+=8;
+			i+=7; // +1 добавит i++ цикла
 		}
 	}
 }
@@ -407,6 +428,8 @@ void canTask(void const * argument) {
 	initCANFilter();
 	HAL_CAN_Start(&hcan1);
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+	init_can_addr_pins();
+	read_can_addr();
 	for(;;) {
 		cnt++;
 		if(cnt>=500) {
@@ -430,9 +453,9 @@ void canTask(void const * argument) {
 		if(clust_tmr>=15) {
 			clust_tmr=0;
 			update_cluster_regs();
+			update_cluster_bits();
 		}
 
-		update_cluster_bits();
 		update_ai_data();
 		update_di_data();
 		inp_tmr++;
