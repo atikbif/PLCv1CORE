@@ -131,6 +131,9 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
+
+	init_can_addr_pins();
+	uint8_t can_check = read_can_addr();
        
   /* USER CODE END Init */
 
@@ -154,6 +157,8 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of defaultTask */
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 1024);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  if(can_check==0) return;
 
   /* definition and creation of progTask */
   osThreadDef(progTask, ProgTask, osPriorityBelowNormal, 0, 1024);

@@ -12,5 +12,7 @@
 
 void canTask(void const * argument);
 void sendIOName(uint8_t ioNum, uint8_t type, uint8_t req_node, uint8_t req_num);
+void init_can_addr_pins();
+uint8_t read_can_addr();
 
 #endif /* CAN_TASK_H_ */

@@ -30,6 +30,13 @@ uint16_t prev_cluster_regs[64]={0};
 uint8_t cluster_bits[224]={0};
 uint8_t prev_cluster_bits[224]={0};
 
+uint8_t net_bits[128]={0};
+uint8_t net_bits_tx[16]={0};
+uint8_t prev_net_bits_tx[16]={0};
+uint16_t net_regs[128]={0};
+uint16_t net_regs_tx[16]={0};
+uint16_t prev_net_regs_tx[16]={0};
+
 uint16_t used_ai = 0x0000;
 
 

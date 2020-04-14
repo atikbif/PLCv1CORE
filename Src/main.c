@@ -95,6 +95,7 @@ uint8_t baud_dir2 = 3;
 
 extern uint16_t ai_type;
 tx_stack can1_tx_stack;
+tx_stack can2_tx_stack;
 
 /* USER CODE END PV */
 
@@ -196,7 +197,7 @@ int main(void)
 	case 3:baud_dir1 = 2;break;
 	case 4:baud_dir1 = 2;break;
 	case 5:baud_dir1 = 2;break;
-	case 6:baud_dir1 = 1;break;
+	case 6:baud_dir1 = 2;break;
   }
 
   switch(baudrate2) {
@@ -206,7 +207,7 @@ int main(void)
   	case 3:baud_dir2 = 2;break;
   	case 4:baud_dir2 = 2;break;
   	case 5:baud_dir2 = 2;break;
-  	case 6:baud_dir2 = 1;break;
+  	case 6:baud_dir2 = 2;break;
   }
 
   /* USER CODE END SysInit */
