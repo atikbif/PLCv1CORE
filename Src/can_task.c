@@ -84,6 +84,7 @@ extern uint16_t prev_net_regs_tx[16];
 static uint8_t net_status = 0;
 static uint8_t cluster_status = 0;
 
+
 void init_can_addr_pins() {
 
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -99,11 +100,12 @@ void init_can_addr_pins() {
 uint8_t read_can_addr() {
 	can_addr = 0;
 	cluster_addr = 0;
+
 	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_8)==GPIO_PIN_RESET) can_addr |= 0x01;
 	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_7)==GPIO_PIN_RESET) can_addr |= 0x02;
 	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_6)==GPIO_PIN_RESET) can_addr |= 0x04;
 
-	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_8)==GPIO_PIN_RESET) {
+	if(HAL_GPIO_ReadPin(GPIOG,GPIO_PIN_5)==GPIO_PIN_RESET) {
 		cluster_addr = can_addr;
 		can_addr = 0;
 	}else {
@@ -175,7 +177,7 @@ static void initCANFilter() {
 	sFilterConfig.FilterIdLow = 0x0000;
 	sFilterConfig.FilterMaskIdHigh = 0x0000;
 	sFilterConfig.FilterMaskIdLow = 0x0000;
-	sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO1;
+	sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
 	sFilterConfig.FilterActivation = ENABLE;
 	sFilterConfig.SlaveStartFilterBank = 14;
 	HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig);
@@ -253,12 +255,6 @@ static void update_net_regs() {
 			prev_net_regs_tx[i]=net_regs_tx[i];
 
 			// inside cluster
-			packet.id = 0x0400 | 0x07 | (can_addr<<3) | (cluster_addr << 7);	// event
-			packet.length = 4;
-			packet.data[0] = 0x06; // global integer values
-			packet.data[1] = 97+(16*cluster_addr) + i; // reg num
-			packet.data[2] = net_regs_tx[i] & 0xFF; // value low byte
-			packet.data[3] = net_regs_tx[i] >> 8; // fault high byte
 			add_tx_can_packet(&can1_tx_stack,&packet);
 
 			net_regs[cluster_addr*16+i] = net_regs_tx[i];
@@ -294,7 +290,7 @@ static void update_net_bits() {
 			packet.id = 0x0400 | 0x07 | (can_addr<<3) | (cluster_addr << 7);	// event
 			packet.length = 4;
 			packet.data[0] = 0x0E; // network packed deduced digitals
-			packet.data[1] = i; // bit num
+			packet.data[1] = cluster_addr*16+i+1; // bit num
 			packet.data[2] = state;
 			packet.data[3] = mask;
 			add_tx_can_packet(&can2_tx_stack,&packet);
@@ -599,7 +595,7 @@ void canTask(void const * argument) {
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 	if(can_addr==0) {
 		HAL_CAN_Start(&hcan2);
-		HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO1_MSG_PENDING);
+		HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 	}
 
 	for(;;) {
@@ -772,38 +768,39 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 					}
 				}else if(eoid==0x0c) {	// cluster status
 					cluster_status = addr;
+				}else if(eoid==0x0f) {	// network integer
+					if(addr>=1 && addr<=128) {
+						net_regs[addr-1] = RxData2[2] | (((uint16_t)RxData2[3])<<8);
+					}
+				}else if(eoid==0x0e) {	// networked packed deduced digitals
+					for(uint8_t i=0;i<8;i++) {
+						if(RxData2[3]&(1<<i)) { // check mask
+							if(addr>=1 && ((addr+i) <= 128)) { // check address
+								if(RxData2[2]&(1<<i)) net_bits[addr-1+i]=1;
+								else net_bits[addr-1+i]=0;
+							}
+						}
+					}
 				}
 			}
 		}
-	}
-}
-
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	tx_stack_data packet;
-	uint8_t srv = 0 ;
-	uint8_t node = 0;
-	uint8_t net_num = 0;
-	__attribute__((unused))uint8_t ss = 0;
-	__attribute__((unused))uint8_t dir = 0;
-	uint8_t eoid = 0;
-	uint8_t addr = 0x00;
-	if(hcan==&hcan2) {
-		if(HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO1)) {
-			if(HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO1, &RxHeader2, RxData2) == HAL_OK) {
+	}else {
+		if(HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0)) {
+			if(HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader2, RxData2) == HAL_OK) {
+				tx_stack_data packet;
 				srv = RxHeader2.StdId & 0x07;
 				node = (RxHeader2.StdId>>3) & 0x0F;
 				eoid = RxData2[0] & 0x1F;
 				//ss = (RxData2[0] >> 5) & 0x07;
 				//dir = (RxData2[0] >> 10) & 0x01;
 				addr = RxData2[1];
-				net_num = (RxHeader2.StdId>>7) & 0x07;
+				uint8_t net_num = (RxHeader2.StdId>>7) & 0x07;
 				if(node==0) {
 					if(srv==0x01) { // heartbeat
 						if(net_num<8) {
-							if(net_heartbeat_cnt[net_num]==HEARTBEAT_MAX) {
-								uint8_t i=0;
-								for(i=0;i<16;i++) {
+							if(net_heartbeat_cnt[net_num]==HEARTBEAT_MAX) { // обнаружен новый узел
+								// спровоцировать отсылку ненулевых данных
+								for(uint8_t i=0;i<16;i++) {
 									if(net_bits_tx[i]) prev_net_bits_tx[i]=0;
 									if(net_regs_tx[i]) prev_net_regs_tx[i]=0;
 								}
@@ -811,28 +808,35 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 							net_heartbeat_cnt[net_num]=0;
 						}
 					}
-					if(eoid==0x0f) {
+					if(eoid==0x0f) {	// network integer
 						if(addr>=1 && addr<=128) {
 							net_regs[addr-1] = RxData2[2] | (((uint16_t)RxData2[3])<<8);
 							// send data inside the cluster
 							packet.id = 0x0400 | 0x07 | (can_addr<<3) | (cluster_addr << 7);	// event
 							packet.length = 4;
-							packet.data[0] = 0x06; // global integer values
-							packet.data[1] = 97+(addr-1); // reg num
+							packet.data[0] = 0x0F; // network integer values
+							packet.data[1] = addr; // reg num
 							packet.data[2] = RxData2[2]; // value low byte
 							packet.data[3] = RxData2[3]; // value high byte
 							add_tx_can_packet(&can1_tx_stack,&packet);
 						}
-					}else if(eoid==0x0e) {
+					}else if(eoid==0x0e) {	// network packed deduced digitals
 						uint8_t i=0;
 						for(i=0;i<8;i++) {
 							if(RxData2[3]&(1<<i)) { // check mask
-								if((addr+i) <= 128) { // check address
-									if(RxData2[2]&(1<<i)) net_bits[addr+i]=1;
-									else net_bits[addr+i]=0;
+								if(addr>=1 && ((addr+i) <= 128)) { // check address
+									if(RxData2[2]&(1<<i)) net_bits[addr-1+i]=1;
+									else net_bits[addr-1+i]=0;
 								}
 							}
 						}
+						packet.id = 0x0400 | 0x07 | (can_addr<<3) | (cluster_addr << 7);	// event
+						packet.length = 4;
+						packet.data[0] = 0x0E; // network packed deduced digitals
+						packet.data[1] = addr; // bit num
+						packet.data[2] = RxData2[2]; // value
+						packet.data[3] = RxData2[3]; // mask
+						add_tx_can_packet(&can1_tx_stack,&packet);
 					}
 				}
 			}
