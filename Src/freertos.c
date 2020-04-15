@@ -72,6 +72,8 @@ unsigned char prev_ain_alarm[AI_CNT] = {0};
 extern uint16_t update_ai;
 extern uint16_t used_ai;
 
+extern uint8_t start_up;
+
 uint16_t ai_type = 0xFFFF;
 
 uint8_t adc_spi_tx[32];
@@ -198,6 +200,7 @@ void StartDefaultTask(void const * argument)
   static uint16_t filter_cnt = 0;
   static uint8_t ms_tmr = 0;
   init_din();
+  start_up = 1;
   for(;;)
   {
 	  ms_tmr++;
@@ -292,6 +295,7 @@ void ProgTask(void const * argument)
   /* Infinite loop */
 
   static unsigned short work_tmr = 0;
+  while(start_up==0) {osDelay(1);}
   MX_IWDG_Init();
   for(;;)
   {

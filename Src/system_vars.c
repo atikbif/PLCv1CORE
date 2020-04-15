@@ -16,13 +16,13 @@ extern uint8_t can_addr;
 extern uint8_t cluster_addr;
 
 // SS1..SS8 (nodes online offline)
-uint8_t node_link[8]={0};
+uint16_t node_link[8]={0};
 
 // SS9 PC21 Network Can
-uint8_t can_link=0;
+uint16_t can_link=0;
 
 // SS10 startup impulse
-uint8_t start_up=1;
+uint16_t start_up=0;
 
 // SS11 seconds since power up
 uint32_t seconds = 0;
@@ -31,16 +31,16 @@ uint32_t seconds = 0;
 uint32_t minutes = 0;
 
 // SS13 cluster status (not used)
-uint8_t cluster_state=0;
+uint16_t cluster_state=0;
 
 // SS14 telemetry status
-uint8_t telemetry_state=1;
+uint16_t telemetry_state=1;
 
 // SS15 cluster number
-uint8_t cluster_num=0;
+uint16_t cluster_num=0;
 
 // SS16..SS23 clusters online offline
-uint8_t cluster_link[8]={0};
+uint16_t cluster_link[8]={0};
 
 // должна вызываться каждые 100 мс
 void update_system_vars() {
