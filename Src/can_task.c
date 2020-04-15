@@ -633,6 +633,7 @@ void canTask(void const * argument) {
 
 		net_heartbeat_tmr++;
 		if(net_heartbeat_tmr>=2000) {
+			net_heartbeat_cnt[cluster_addr]=0;
 			net_heartbeat_tmr = 0;
 			for(i=0;i<sizeof(net_heartbeat_cnt);i++) {
 				if(net_heartbeat_cnt[i]<HEARTBEAT_MAX) net_heartbeat_cnt[i]++;
