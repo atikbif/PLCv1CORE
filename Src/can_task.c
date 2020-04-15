@@ -29,10 +29,7 @@ static CAN_TxHeaderTypeDef   TxHeader2;
 static uint32_t              TxMailbox2=0;
 static uint8_t               TxData2[8];
 
-#define HEARTBEAT_MAX	3
-
-#define MAX_NODE_CNT	8
-#define MAX_NET_CNT		8
+extern uint8_t can1_tmr;
 
 uint8_t heartbeat_cnt[MAX_NODE_CNT] = {HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX};
 uint8_t net_heartbeat_cnt[MAX_NET_CNT] = {HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX,HEARTBEAT_MAX};
@@ -612,16 +609,16 @@ void canTask(void const * argument) {
 		}
 		cnt++;
 		if(cnt>=500) {
-
 			update_net_status();
-
 			cnt = 0;
-
 			packet.id = 0x0400 | 0x01 | (can_addr<<3) | (cluster_addr << 7);
 			packet.length = 2;
 			packet.data[0] = 0x49;
 			packet.data[1] = heartbeat_value++;
 			add_tx_can_packet(&can1_tx_stack,&packet);
+
+			if(can_addr<MAX_NODE_CNT) heartbeat_cnt[can_addr]=0;
+
 		}
 		heartbeat_tmr++;
 		if(heartbeat_tmr>=1000) {
@@ -732,6 +729,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if(hcan==&hcan1) {
 		if(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0)) {
 			if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK) {
+				can1_tmr = 0;
 				//HAL_GPIO_TogglePin(LED_G_GPIO_Port,LED_G_Pin);
 				srv = RxHeader.StdId & 0x07;
 				node = (RxHeader.StdId>>3) & 0x0F;

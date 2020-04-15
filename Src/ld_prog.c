@@ -3,6 +3,8 @@
 #include "iodef.h"
 #include "os_conf.h"
 #include "stdint.h"
+#include "system_vars.h"
+
 unsigned short plc_cycle = 100;
 
 unsigned short ain[AI_CNT];
@@ -36,6 +38,34 @@ uint8_t prev_net_bits_tx[16]={0};
 uint16_t net_regs[128]={0};
 uint16_t net_regs_tx[16]={0};
 uint16_t prev_net_regs_tx[16]={0};
+
+// SS1..SS8 (nodes online offline)
+extern uint8_t node_link[8];
+
+// SS9 PC21 Network Can
+extern uint8_t can_link;
+
+// SS10 startup impulse
+extern uint8_t start_up;
+
+// SS11 seconds since power up
+extern uint32_t seconds;
+
+// SS12 minutes since power up
+extern uint32_t minutes;
+
+// SS13 cluster status (not used)
+extern uint8_t cluster_state;
+
+// SS14 telemetry status
+extern uint8_t telemetry_state;
+
+// SS15 cluster number
+extern uint8_t cluster_num;
+
+// SS16..SS23 clusters online offline
+extern uint8_t cluster_link[8];
+
 
 uint16_t used_ai = 0x0000;
 

@@ -1588,7 +1588,29 @@
 #define NREG94 net_regs_tx[13]
 #define NREG95 net_regs_tx[14]
 #define NREG96 net_regs_tx[15]
-
+#define SS1		node_link[0]
+#define SS2		node_link[1]
+#define SS3		node_link[2]
+#define SS4		node_link[3]
+#define SS5		node_link[4]
+#define SS6		node_link[5]
+#define SS7		node_link[6]
+#define SS8		node_link[7]
+#define SS9		can_link
+#define SS10	start_up
+#define SS11	seconds
+#define SS12	minutes
+#define SS13	cluster_state
+#define SS14	telemetry_state
+#define SS15	cluster_num
+#define SS16	cluster_link[0]
+#define SS17	cluster_link[1]
+#define SS18	cluster_link[2]
+#define SS19	cluster_link[3]
+#define SS20	cluster_link[4]
+#define SS21	cluster_link[5]
+#define SS22	cluster_link[6]
+#define SS23	cluster_link[7]
 
 
 #endif /* IODEF_H_ */

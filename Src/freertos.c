@@ -38,6 +38,7 @@
 #include "udp_server.h"
 #include "modbus_master.h"
 #include "can_task.h"
+#include "system_vars.h"
 
 /* USER CODE END Includes */
 
@@ -195,11 +196,19 @@ void StartDefaultTask(void const * argument)
   static uint16_t i=0;
   static uint16_t value=0;
   static uint16_t filter_cnt = 0;
+  static uint8_t ms_tmr = 0;
   init_din();
   for(;;)
   {
+	  ms_tmr++;
+	  if(ms_tmr>=100) {
+		  ms_tmr=0;
+		  update_system_vars();
+	  }
 	  led_tmr++;
-	  if(led_tmr>=1000) {led_tmr=0;}
+	  if(led_tmr>=1000) {
+		  led_tmr=0;
+	  }
 	  //if(led_tmr==0) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_SET);
 	  //else if(led_tmr==10) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_RESET);
 

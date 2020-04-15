@@ -45,7 +45,7 @@
 
 //uint16_t reset_tmr;
 static uint8_t nums = 0x00;
-
+extern uint8_t telemetry_tmr;
 
 
 /*-----------------------------------------------------------------------------------*/
@@ -87,6 +87,7 @@ static void ethipserver_thread(void *arg)
 			  get_encaps_packet(&inp_data_pckt,&enc_pckt,&bool_result);
 			  if(bool_result) {
 				  //reset_tmr = 0;
+				  telemetry_tmr = 0;
 				  out_data_pckt.data = &out_buf[1024*(num-1)];
 				  out_data_pckt.length = 0;
 				  get_answer(&enc_pckt, &out_data_pckt);

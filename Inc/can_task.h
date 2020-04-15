@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#define MAX_NODE_CNT	8
+#define MAX_NET_CNT		8
+#define HEARTBEAT_MAX	3
+
 void canTask(void const * argument);
 void sendIOName(uint8_t ioNum, uint8_t type, uint8_t req_node, uint8_t req_num);
 void init_can_addr_pins();
