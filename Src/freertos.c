@@ -215,6 +215,7 @@ void StartDefaultTask(void const * argument)
 	  	  case 60:update_ethip_intern_bits();break;
 	  	  case 70:update_ethip_scada_bits();break;
 	  	  case 80:update_ethip_scada_regs();break;
+	  	  case 90:node_and_cluster_state_to_scada();break;
 	  }
 	  if(scada_tmr>=100) scada_tmr = 0;
 	  ms_tmr++;
