@@ -619,7 +619,6 @@ void canTask(void const * argument) {
 			add_tx_can_packet(&can1_tx_stack,&packet);
 
 			if(can_addr<MAX_NODE_CNT) heartbeat_cnt[can_addr]=0;
-
 		}
 		heartbeat_tmr++;
 		if(heartbeat_tmr>=1000) {

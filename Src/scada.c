@@ -69,6 +69,7 @@ void node_and_cluster_state_to_scada() {
 		if(heartbeat_cnt[i]<HEARTBEAT_MAX) node_state |= 1 << i;
 		if(net_heartbeat_cnt[i]<HEARTBEAT_MAX) clust_state |= 1 << i;
 	}
+	node_state|=0x80;	// имитация наличия модуля FE в скаде
 	answer_9b[0] = node_state;
 	answer_9b[1] = clust_state;
 }
