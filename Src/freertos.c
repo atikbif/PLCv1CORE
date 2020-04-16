@@ -39,6 +39,7 @@
 #include "modbus_master.h"
 #include "can_task.h"
 #include "system_vars.h"
+#include "scada.h"
 
 /* USER CODE END Includes */
 
@@ -199,10 +200,23 @@ void StartDefaultTask(void const * argument)
   static uint16_t value=0;
   static uint16_t filter_cnt = 0;
   static uint8_t ms_tmr = 0;
+  static uint8_t scada_tmr = 0;
   init_din();
   start_up = 1;
   for(;;)
   {
+	  scada_tmr++;
+	  switch(scada_tmr) {
+	  	  case 10:net_bits_to_scada_first();break;
+	  	  case 20:net_bits_to_scada_second();break;
+	  	  case 30:net_regs_to_scada_first();break;
+	  	  case 40:net_regs_to_scada_second();break;
+	  	  case 50:update_ethip_intern_regs();break;
+	  	  case 60:update_ethip_intern_bits();break;
+	  	  case 70:update_ethip_scada_bits();break;
+	  	  case 80:update_ethip_scada_regs();break;
+	  }
+	  if(scada_tmr>=100) scada_tmr = 0;
 	  ms_tmr++;
 	  if(ms_tmr>=100) {
 		  ms_tmr=0;
@@ -261,13 +275,8 @@ void StartDefaultTask(void const * argument)
 				  update_ethip_ain();
 			  }
 		  }
-	  }else if(adc_spi_tmr==10) {
-		  adc_spi_tmr=0;
-		  update_ethip_intern_regs();
-		  update_ethip_intern_bits();
-		  update_ethip_scada_bits();
-		  update_ethip_scada_regs();
 	  }
+	  if(adc_spi_tmr>=10) {adc_spi_tmr=0;}
 
 
 	  update_din();
