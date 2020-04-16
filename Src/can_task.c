@@ -277,6 +277,7 @@ static void update_net_bits() {
 			for(j=0;j<8;j++) {
 				if(i+j>=16) break;
 				if(net_bits_tx[i+j]!=prev_net_bits_tx[i+j]) {
+					net_bits[cluster_addr*16+i+j] = net_bits_tx[i+j];
 					mask|=1<<j;
 					if(net_bits_tx[i+j]) state|=1<<j;
 					prev_net_bits_tx[i+j] = net_bits_tx[i+j];
