@@ -11,6 +11,7 @@
 #include "os_conf.h"
 #include "can_tx_stack.h"
 #include <string.h>
+#include "led.h"
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;

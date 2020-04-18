@@ -40,6 +40,7 @@
 #include "can_task.h"
 #include "system_vars.h"
 #include "scada.h"
+#include "led.h"
 
 /* USER CODE END Includes */
 
@@ -191,6 +192,7 @@ void StartDefaultTask(void const * argument)
   MX_LWIP_Init();
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+  init_leds();
   tcp_server_init();
   udp_server_init();
   static uint16_t led_tmr = 0;
@@ -227,8 +229,11 @@ void StartDefaultTask(void const * argument)
 	  if(led_tmr>=1000) {
 		  led_tmr=0;
 	  }
-	  //if(led_tmr==0) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_SET);
-	  //else if(led_tmr==10) HAL_GPIO_WritePin(LED_G_GPIO_Port,LED_G_Pin,GPIO_PIN_RESET);
+
+	  set_usr1_green_led(0);
+	  set_usr2_green_led(0);
+	  if(led_tmr==0) set_sys_green_led(1);
+	  else if(led_tmr==10) set_sys_green_led(0);
 
 	  adc_spi_tmr++;
 	  if(adc_spi_tmr==2) {
