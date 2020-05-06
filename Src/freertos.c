@@ -104,6 +104,8 @@ extern void update_ethip_intern_regs();
 extern void update_ethip_intern_bits();
 extern void update_ethip_scada_bits();
 extern void update_ethip_scada_regs();
+
+__weak void init_vars() {};
    
 /* USER CODE END FunctionPrototypes */
 
@@ -213,8 +215,18 @@ void StartDefaultTask(void const * argument)
 	  	  case 20:net_bits_to_scada_second();break;
 	  	  case 30:net_regs_to_scada_first();break;
 	  	  case 40:net_regs_to_scada_second();break;
-	  	  case 50:update_ethip_intern_regs();break;
-	  	  case 60:update_ethip_intern_bits();break;
+	  	  case 50:
+	  		  //update_ethip_intern_regs();
+	  		  cluster_regs_to_scada();
+	  	  	  break;
+	  	  case 60:
+	  		  //update_ethip_intern_bits();
+	  		  cluster_bits_to_scada(0);
+	  		  break;
+	  	  case 62:cluster_bits_to_scada(1);break;
+	  	  case 64:cluster_bits_to_scada(2);break;
+	  	  case 66:cluster_bits_to_scada(3);break;
+
 	  	  case 70:update_ethip_scada_bits();break;
 	  	  case 80:update_ethip_scada_regs();break;
 	  	  case 90:node_and_cluster_state_to_scada();break;
@@ -311,6 +323,7 @@ void ProgTask(void const * argument)
 
   static unsigned short work_tmr = 0;
   while(start_up==0) {osDelay(1);}
+  init_vars();
   MX_IWDG_Init();
   for(;;)
   {
