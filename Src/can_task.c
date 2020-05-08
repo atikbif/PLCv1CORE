@@ -13,6 +13,8 @@
 #include <string.h>
 #include "led.h"
 
+UBaseType_t uxHighWaterMark3; // can task
+
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 
@@ -589,6 +591,7 @@ void canTask(void const * argument) {
 	uint16_t inp_tmr=0;
 	uint16_t clust_tmr = 0;
 	tx_stack_data packet;
+	uxHighWaterMark3 = uxTaskGetStackHighWaterMark( NULL );
 	initCANFilter();
 	HAL_CAN_Start(&hcan1);
 	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
@@ -663,6 +666,8 @@ void canTask(void const * argument) {
 		can_write_from_stack();
 		if(can_addr==0) can_write_from_stack2();
 		osDelay(1);
+
+		uxHighWaterMark3 = uxTaskGetStackHighWaterMark( NULL );
 	}
 }
 

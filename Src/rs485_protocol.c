@@ -13,6 +13,15 @@
 #include "eeprom.h"
 #include "os_conf.h"
 #include "modbus.h"
+#include "cmsis_os.h"
+
+extern UBaseType_t uxHighWaterMark1;
+extern UBaseType_t uxHighWaterMark2;
+extern UBaseType_t uxHighWaterMark3;
+extern UBaseType_t uxHighWaterMark4;
+extern UBaseType_t uxHighWaterMark5;
+extern UBaseType_t uxHighWaterMark6;
+extern UBaseType_t uxHighWaterMark7;
 
 static uint8_t tmp_rx1_buf[UART_BUF_SISE];
 static uint8_t tmp_rx2_buf[UART_BUF_SISE];
@@ -201,6 +210,27 @@ void rx_callback(uint8_t* rx_ptr,uint16_t rx_cnt, uint8_t * tx_ptr, void (*send)
 					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 7) {
 						tx_ptr[3+tmp*2] = plc_cycle>>8;
 						tx_ptr[4+tmp*2] = plc_cycle&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 8) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark1>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark1&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 9) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark2>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark2&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 10) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark3>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark3&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 11) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark4>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark4&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 12) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark5>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark5&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 13) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark6>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark6&0xFF;
+					}else if(mem_addr+tmp==IREG_CNT + AI_CNT + 14) {
+						tx_ptr[3+tmp*2] = (uxHighWaterMark7>>8)&0xFF;
+						tx_ptr[4+tmp*2] = uxHighWaterMark7&0xFF;
 					}
 				}
 				tx_ptr[0]=rx_ptr[0];

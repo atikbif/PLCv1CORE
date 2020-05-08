@@ -47,6 +47,11 @@
 static uint8_t nums = 0x00;
 extern uint8_t telemetry_tmr;
 
+UBaseType_t uxHighWaterMark4; // tcp server task
+UBaseType_t uxHighWaterMark5; // ethip server 1 task
+UBaseType_t uxHighWaterMark6; // ethip server 2 task
+UBaseType_t uxHighWaterMark7; // ethip server 3 task
+
 
 /*-----------------------------------------------------------------------------------*/
 static void ethipserver_thread(void *arg)
@@ -75,6 +80,10 @@ static void ethipserver_thread(void *arg)
     }
     nums|=(1<<(num-1));
 
+    if(num==1) uxHighWaterMark5 = uxTaskGetStackHighWaterMark( NULL );
+    else if(num==2) uxHighWaterMark6 = uxTaskGetStackHighWaterMark( NULL );
+    else if(num==3) uxHighWaterMark7 = uxTaskGetStackHighWaterMark( NULL );
+
     close_flag = 0;
 	netconn_set_recvtimeout(newconn,30000);
 	while (netconn_recv(newconn, &buf) == ERR_OK)
@@ -102,6 +111,10 @@ static void ethipserver_thread(void *arg)
 
 		netbuf_delete(buf);
 		if(close_flag) break;
+
+		if(num==1) uxHighWaterMark5 = uxTaskGetStackHighWaterMark( NULL );
+		else if(num==2) uxHighWaterMark6 = uxTaskGetStackHighWaterMark( NULL );
+		else if(num==3) uxHighWaterMark7 = uxTaskGetStackHighWaterMark( NULL );
 	}
 
 	/* Close connection and discard connection identifier. */
@@ -117,6 +130,8 @@ static void tcp_server_thread(void *arg)
 {
   struct netconn *conn, *newconn;
   err_t err, accept_err;
+
+  uxHighWaterMark4 = uxTaskGetStackHighWaterMark( NULL );
       
   LWIP_UNUSED_ARG(arg);
 
@@ -148,6 +163,7 @@ static void tcp_server_thread(void *arg)
         	}
         }
         osDelay(1);
+        uxHighWaterMark4 = uxTaskGetStackHighWaterMark( NULL );
       }
     }
   }

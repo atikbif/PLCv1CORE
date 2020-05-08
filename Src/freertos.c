@@ -62,6 +62,9 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
+UBaseType_t uxHighWaterMark1; // def task
+UBaseType_t uxHighWaterMark2; // prog task
+
 extern unsigned short sys_tmr;
 unsigned short work_time = 1;
 extern unsigned short plc_cycle;
@@ -207,6 +210,9 @@ void StartDefaultTask(void const * argument)
   static uint8_t scada_tmr = 0;
   init_din();
   start_up = 1;
+
+  uxHighWaterMark1 = uxTaskGetStackHighWaterMark( NULL );
+
   for(;;)
   {
 	  scada_tmr++;
@@ -305,6 +311,7 @@ void StartDefaultTask(void const * argument)
 	  modbus_master_process();
 
 	  osDelay(1);
+	  uxHighWaterMark1 = uxTaskGetStackHighWaterMark( NULL );
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -322,6 +329,7 @@ void ProgTask(void const * argument)
   /* Infinite loop */
 
   static unsigned short work_tmr = 0;
+  uxHighWaterMark2 = uxTaskGetStackHighWaterMark( NULL );
   while(start_up==0) {osDelay(1);}
   init_vars();
   MX_IWDG_Init();
@@ -335,6 +343,7 @@ void ProgTask(void const * argument)
 	  update_dout();
 	  if(plc_cycle) osDelay(plc_cycle);
 	  LL_IWDG_ReloadCounter(IWDG);
+	  uxHighWaterMark2 = uxTaskGetStackHighWaterMark( NULL );
   }
   /* USER CODE END ProgTask */
 }
